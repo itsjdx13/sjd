@@ -1,0 +1,28 @@
+{
+  "name": "northstar-personal-finance",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --configLoader native",
+    "build": "tsc -b && vite build --configLoader native",
+    "preview": "vite preview --configLoader native",
+    "test": "vitest run --config vitest.config.ts --configLoader native",
+    "test:watch": "vitest --config vitest.config.ts --configLoader native"
+  },
+  "dependencies": {
+    "@fontsource-variable/estedad": "latest",
+    "idb": "latest",
+    "react": "latest",
+    "react-dom": "latest"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@vitejs/plugin-react": "latest",
+    "typescript": "latest",
+    "vite": "latest",
+    "vite-plugin-pwa": "latest",
+    "vitest": "latest"
+  }
+}
