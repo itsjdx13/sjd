@@ -15,7 +15,7 @@ export const assetCatalog: AssetSearchResult[] = [
   { symbol: 'META', name: 'Meta', assetType: 'stock', market: 'NASDAQ', currency: 'USD', priceSource: 'alpha_vantage' },
   { symbol: 'SPY', name: 'SPDR S&P 500 ETF', assetType: 'fund', market: 'NYSE Arca', currency: 'USD', priceSource: 'alpha_vantage' },
   { symbol: 'QQQ', name: 'Invesco QQQ', assetType: 'fund', market: 'NASDAQ', currency: 'USD', priceSource: 'alpha_vantage' },
-  { symbol: 'عیار', name: 'Ayar Gold Fund', assetType: 'fund', market: 'TSETMC', currency: 'IRR', priceSource: 'manual' },
+  { symbol: 'عیار', name: 'Ayar Gold Fund', assetType: 'fund', market: 'Iran Fara Bourse', currency: 'IRR', priceSource: 'tsetmc', providerId: '34144395039913458' },
   { symbol: 'USD/IRR', name: 'US Dollar / Iranian Rial', assetType: 'currency', market: 'FX', currency: 'IRR', priceSource: 'manual' },
   { symbol: 'EUR/USD', name: 'Euro / US Dollar', assetType: 'currency', market: 'FX', currency: 'USD', priceSource: 'manual' }
 ];

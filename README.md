@@ -8,8 +8,8 @@ A private, local-first personal finance terminal for investments, cash, currenci
 - Net worth, daily change, cost basis, profit/loss, and asset allocation
 - Sortable holdings, manual assets, properties, ownership percentages, and liabilities
 - USD, EUR, GBP, AED, IRR, and IRT display; `1 IRT = 10 IRR` is explicit
-- CoinGecko crypto, Gold API metals, Frankfurter FX, optional Alpha Vantage stocks, and opt-in TSETMC adapters
-- Ayar / `عیار` as a Unicode-safe manual holding with an optional TSETMC instrument code
+- CoinGecko crypto, Gold API metals, Frankfurter FX, optional Alpha Vantage stocks, and cached TSETMC quotes
+- Ayar / `عیار` with manual units and automatic public TSETMC pricing in Rial per fund unit
 - Watchlist, privacy mode, light/dark/system appearance, and cached price status
 - Position-size, risk/reward, P&L, pip, and margin calculators
 - JSON backup/restore and CSV export
@@ -55,7 +55,7 @@ The first launch shows removable demo assets. Settings → **Remove demo data** 
 
 ## Market-data providers
 
-Research was checked on 21 Aug 2026. Providers can change their terms or limits, so cached/manual pricing is always the fallback.
+Research was checked on 24 Aug 2026. Providers can change their terms or limits, so cached/manual pricing is always the fallback.
 
 | Provider | Use | Key / current free limit | Behavior |
 | --- | --- | --- | --- |
@@ -63,10 +63,10 @@ Research was checked on 21 Aug 2026. Providers can change their terms or limits,
 | [Frankfurter](https://frankfurter.dev/) | Conventional FX | No key; no quota, fair-use rate limiting; central-bank reference rates | Daily/reference data, 15-minute app cache |
 | [Gold API](https://gold-api.com/docs) | XAU, XAG | No key; real-time endpoint advertised without a quota | Five-minute cache; verify before trading |
 | [Alpha Vantage](https://www.alphavantage.co/support/) | International equities | Optional key; 25 requests/day; free US data is not real-time/15-minute | Labeled delayed, five-minute cache |
-| TSETMC public site | Iranian instruments / Ayar | No documented developer SLA or stable official public API contract found | Disabled by default; instrument-code adapter, cached/manual fallback |
+| [TSETMC public endpoint reference](https://github.com/solitraderbusiness/tsetmc-mcp/blob/main/docs/endpoints.md) | Iranian instruments / Ayar | Keyless and public, but undocumented by the exchange with no SLA; access can be geographically restricted | Five-minute cache, exchange timestamp, cached/manual fallback |
 | Manual | Property, cash, Mofid holdings, IRR FX | Unlimited, offline | User-maintained |
 
-No authenticated Mofid API suitable for this personal client was verified. The app therefore never signs in to Mofid and never scrapes account data. Record the owned units manually, then use a legitimate public quote where available. TradingView and Bloomberg are navigation/research products only and are not critical data dependencies.
+No authenticated Mofid API suitable for this personal client was verified. The app therefore never signs in to Mofid and never scrapes account data. Record the owned units manually, then use a legitimate public quote where available. Ayar is mapped to TSETMC instrument `34144395039913458`; its quote is explicitly treated as IRR per unit and marked with the exchange update time. TradingView and Bloomberg are navigation/research products only and are not critical data dependencies.
 
 ### Optional keys
 

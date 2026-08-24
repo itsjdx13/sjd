@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { demoData } from '../data/demo';
 import { marketDataService } from '../services/market-data/market-data-service';
+import { upgradeKnownMarketData } from '../services/market-data/migrations';
 import { localStorageProvider } from '../services/storage/storage';
 import type { AppData, Asset, Preferences, WatchItem } from '../types/finance';
 
@@ -14,7 +15,7 @@ export function usePortfolio() {
 
   useEffect(() => {
     localStorageProvider.load().then((stored) => {
-      setData(stored ?? cloneDemo());
+      setData(stored ? upgradeKnownMarketData(stored) : cloneDemo());
       setReady(true);
       setStatus(stored ? 'Local portfolio loaded' : 'Demo portfolio — stored on this device');
     }).catch(() => { setReady(true); setStatus('Temporary session — local database unavailable'); });

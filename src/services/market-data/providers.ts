@@ -3,15 +3,18 @@ import type { AssetSearchResult, CurrencyCode, MarketDataProvider, PriceSource, 
 
 async function fetchJson(url: string, timeoutMs = 6000): Promise<unknown> {
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+  const timeout = globalThis.setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, { signal: controller.signal, headers: { Accept: 'application/json' }, credentials: 'omit', referrerPolicy: 'no-referrer' });
     if (!response.ok) throw new Error(`Provider returned ${response.status}`);
     const declaredLength = Number(response.headers.get('content-length') ?? 0);
     if (declaredLength > 2_000_000) throw new Error('Provider response exceeded the safety limit.');
-    return await response.json() as unknown;
+    const body = await response.text();
+    if (body.length > 2_000_000) throw new Error('Provider response exceeded the safety limit.');
+    try { return JSON.parse(body) as unknown; }
+    catch { throw new Error('Provider returned invalid JSON.'); }
   } finally {
-    window.clearTimeout(timeout);
+    globalThis.clearTimeout(timeout);
   }
 }
 
@@ -19,7 +22,15 @@ abstract class BaseProvider implements MarketDataProvider {
   abstract readonly id: PriceSource;
   async searchAssets(query: string): Promise<AssetSearchResult[]> { return searchCatalog(query).filter((item) => item.priceSource === this.id); }
   abstract getQuote(symbol: string, providerId?: string): Promise<Quote>;
-  async getQuotes(symbols: Array<{ symbol: string; providerId?: string }>) { return Promise.all(symbols.map((item) => this.getQuote(item.symbol, item.providerId))); }
+  async getQuotes(symbols: Array<{ symbol: string; providerId?: string }>) {
+    const results = await Promise.allSettled(symbols.map((item) => this.getQuote(item.symbol, item.providerId)));
+    const quotes = results.flatMap((result) => result.status === 'fulfilled' ? [result.value] : []);
+    if (!quotes.length) {
+      const failure = results.find((result): result is PromiseRejectedResult => result.status === 'rejected');
+      throw failure?.reason instanceof Error ? failure.reason : new Error(`${this.id} quotes failed`);
+    }
+    return quotes;
+  }
 }
 
 export class CoinGeckoProvider extends BaseProvider {
@@ -69,12 +80,38 @@ export class TsetmcProvider extends BaseProvider {
   readonly id = 'tsetmc' as const;
   async getQuote(symbol: string, providerId?: string) {
     if (!providerId) throw new Error(`TSETMC instrument code is required for ${symbol}`);
-    const data = await fetchJson(`https://cdn.tsetmc.com/api/ClosingPrice/GetClosingPriceInfo/${encodeURIComponent(providerId)}`) as { closingPriceInfo?: { pClosing?: number; pDrCotVal?: number; priceChangePercent?: number; dEven?: number } };
+    if (!/^\d{15,20}$/.test(providerId)) throw new Error(`Invalid TSETMC instrument code for ${symbol}`);
+    const data = await fetchJson(`https://cdn.tsetmc.com/api/ClosingPrice/GetClosingPriceInfo/${providerId}`) as { closingPriceInfo?: TsetmcClosingPriceInfo };
     const row = data.closingPriceInfo;
-    const price = row?.pClosing ?? row?.pDrCotVal;
-    if (!price) throw new Error(`No TSETMC quote for ${symbol}`);
-    return { symbol, price, currency: 'IRR' as const, changePercent: row?.priceChangePercent, source: this.id, timestamp: new Date().toISOString(), delayed: true };
+    if (!row) throw new Error(`No TSETMC quote for ${symbol}`);
+    return parseTsetmcQuote(symbol, row);
   }
+}
+
+export interface TsetmcClosingPriceInfo {
+  pClosing?: number;
+  pDrCotVal?: number;
+  priceYesterday?: number;
+  priceChangePercent?: number;
+  dEven?: number;
+  hEven?: number;
+}
+
+export function tsetmcTimestamp(dEven?: number, hEven?: number): string {
+  const date = String(dEven ?? '');
+  if (!/^\d{8}$/.test(date)) return new Date().toISOString();
+  const time = String(hEven ?? 0).padStart(6, '0');
+  const parsed = new Date(`${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}T${time.slice(0, 2)}:${time.slice(2, 4)}:${time.slice(4, 6)}+03:30`);
+  return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+}
+
+export function parseTsetmcQuote(symbol: string, row: TsetmcClosingPriceInfo): Quote {
+  const price = row.pDrCotVal ?? row.pClosing;
+  if (!Number.isFinite(price) || (price ?? 0) <= 0) throw new Error(`No TSETMC quote for ${symbol}`);
+  const changePercent = row.priceYesterday && row.priceYesterday > 0
+    ? ((price! - row.priceYesterday) / row.priceYesterday) * 100
+    : row.priceChangePercent;
+  return { symbol, price: price!, currency: 'IRR', changePercent, source: 'tsetmc', timestamp: tsetmcTimestamp(row.dEven, row.hEven), delayed: true };
 }
 
 export async function fetchConventionalFx(base: CurrencyCode): Promise<{ rates: Partial<Record<CurrencyCode, number>>; timestamp: string }> {
