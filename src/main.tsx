@@ -6,6 +6,12 @@ import './styles.css';
 import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
+const StyleguidePage = React.lazy(() => import('./features/styleguide/StyleguidePage'));
+
 registerSW({ immediate: true });
 
-ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><ErrorBoundary><App /></ErrorBoundary></React.StrictMode>);
+const content = window.location.pathname.startsWith('/styleguide')
+  ? <React.Suspense fallback={<div className="grid min-h-screen place-items-center bg-background text-sm text-muted-foreground">Loading design system…</div>}><StyleguidePage /></React.Suspense>
+  : <App />;
+
+ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><ErrorBoundary>{content}</ErrorBoundary></React.StrictMode>);

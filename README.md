@@ -28,6 +28,12 @@ React UI → calculation/services layer → provider adapters → public APIs
 
 The UI never fetches provider APIs directly. `MarketDataService` batches crypto requests, deduplicates in-flight requests, applies provider-specific cache TTLs, and retains cached prices on errors. The normalized data types live in `src/types/finance.ts`; calculation code is in `src/utils/finance.ts`; providers are under `src/services/market-data/`.
 
+## Design system
+
+Open `/styleguide` during development to inspect the Northstar foundation and initial shadcn primitives. The Vite-native setup includes Tailwind CSS v4, `components.json`, the `@/` import alias, and reusable Button, Card, Badge, Alert, and Radio Group components under `src/components/ui/`.
+
+The design tokens live at the top of `src/styles.css`. They include complete lime primary and graphite neutral scales, light/dark semantic roles, accessible status colors, five chart colors, sidebar roles, spacing-aware radii, and restrained elevation. The styleguide implementation is lazy-loaded from `src/features/styleguide/`, so it does not increase the dashboard's initial JavaScript bundle.
+
 ## Install and run
 
 Requires a current Node.js LTS release.
