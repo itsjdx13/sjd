@@ -20,6 +20,7 @@ export function AssetModal({ asset, onClose, onSave, onDelete }: Props) {
   const [providerId, setProviderId] = useState(asset?.providerId ?? '');
   const [ownership, setOwnership] = useState(asset?.ownershipPercent ?? 100);
   const [notes, setNotes] = useState(asset?.notes ?? '');
+  const [error, setError] = useState('');
   const results = useMemo(() => asset ? [] : searchCatalog(query), [asset, query]);
   const isProperty = type === 'real_estate' || type === 'vehicle';
 
@@ -36,8 +37,12 @@ export function AssetModal({ asset, onClose, onSave, onDelete }: Props) {
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (!name.trim() || !symbol.trim() || quantity < 0 || current < 0) return;
-    onSave({ id: asset?.id ?? crypto.randomUUID(), name: name.trim(), symbol: symbol.trim(), assetType: type, market: asset?.market ?? (source === 'manual' ? 'Manual' : source), quantity, averageBuyPrice: average, currentPrice: current, currency, priceSource: source, providerId: providerId || undefined, lastUpdated: asset?.lastUpdated ?? new Date().toISOString(), ownershipPercent: isProperty ? ownership : undefined, notes: notes.trim() || undefined, purchaseDate: asset?.purchaseDate });
+    const numbers = [quantity, average, current, ownership];
+    if (!name.trim() || !symbol.trim()) { setError('Name and symbol are required.'); return; }
+    if (!numbers.every(Number.isFinite) || quantity < 0 || average < 0 || current < 0 || ownership < 0 || ownership > 100) { setError('Enter valid non-negative values. Ownership must be between 0 and 100%.'); return; }
+    if (name.trim().length > 160 || symbol.trim().length > 80 || providerId.trim().length > 160 || notes.trim().length > 2_000) { setError('One or more fields exceed the allowed length.'); return; }
+    setError('');
+    onSave({ id: asset?.id ?? crypto.randomUUID(), name: name.trim(), symbol: symbol.trim(), assetType: type, market: asset?.market ?? (source === 'manual' ? 'Manual' : source), quantity, averageBuyPrice: average, currentPrice: current, currency, priceSource: source, providerId: providerId.trim() || undefined, lastUpdated: asset?.lastUpdated ?? new Date().toISOString(), ownershipPercent: isProperty ? ownership : undefined, notes: notes.trim() || undefined, purchaseDate: asset?.purchaseDate });
   }
 
   return <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><section className="modal" role="dialog" aria-modal="true" aria-labelledby="asset-title">
@@ -45,8 +50,8 @@ export function AssetModal({ asset, onClose, onSave, onDelete }: Props) {
     <form onSubmit={submit}>
       {!asset && <div className="field full search-field"><label htmlFor="asset-search">Search known assets</label><input id="asset-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="BTC, AAPL, عیار…" autoFocus />{query && results.length > 0 && <div className="search-results">{results.map((item, index) => <button type="button" key={`${item.symbol}-${item.market}`} onClick={() => selectResult(index)}><span><strong>{item.symbol}</strong>{item.name}</span><small>{item.market}</small></button>)}</div>}</div>}
       <div className="form-grid">
-        <div className="field"><label htmlFor="asset-name">Name</label><input id="asset-name" value={name} onChange={(e) => setName(e.target.value)} required /></div>
-        <div className="field"><label htmlFor="asset-symbol">Symbol</label><input id="asset-symbol" value={symbol} onChange={(e) => setSymbol(e.target.value)} required dir="auto" /></div>
+        <div className="field"><label htmlFor="asset-name">Name</label><input id="asset-name" value={name} onChange={(e) => setName(e.target.value)} required maxLength={160} /></div>
+        <div className="field"><label htmlFor="asset-symbol">Symbol</label><input id="asset-symbol" value={symbol} onChange={(e) => setSymbol(e.target.value)} required maxLength={80} dir="auto" /></div>
         <div className="field"><label htmlFor="asset-type">Asset type</label><select id="asset-type" value={type} onChange={(e) => setType(e.target.value as AssetType)}>{assetTypes.map((item) => <option key={item} value={item}>{labels[item]}</option>)}</select></div>
         <div className="field"><label htmlFor="asset-currency">Currency</label><select id="asset-currency" value={currency} onChange={(e) => setCurrency(e.target.value as CurrencyCode)}>{['USD', 'EUR', 'GBP', 'AED', 'IRR', 'IRT'].map((item) => <option key={item}>{item}</option>)}</select></div>
         <div className="field"><label htmlFor="asset-quantity">{isProperty ? 'Units' : 'Quantity'}</label><input id="asset-quantity" type="number" min="0" step="any" value={quantity} onChange={(e) => setQuantity(e.target.valueAsNumber || 0)} /></div>
@@ -54,10 +59,11 @@ export function AssetModal({ asset, onClose, onSave, onDelete }: Props) {
         <div className="field"><label htmlFor="asset-current">{isProperty ? 'Estimated current value' : 'Current price'}</label><input id="asset-current" type="number" min="0" step="any" value={current} onChange={(e) => setCurrent(e.target.valueAsNumber || 0)} /></div>
         {isProperty && <div className="field"><label htmlFor="asset-ownership">Ownership %</label><input id="asset-ownership" type="number" min="0" max="100" value={ownership} onChange={(e) => setOwnership(e.target.valueAsNumber || 0)} /></div>}
         <div className="field"><label htmlFor="asset-source">Price source</label><select id="asset-source" value={source} onChange={(e) => setSource(e.target.value as PriceSource)}><option value="manual">Manual</option><option value="coingecko">CoinGecko</option><option value="gold_api">Gold API</option><option value="alpha_vantage">Alpha Vantage</option><option value="tsetmc">TSETMC (opt-in)</option></select></div>
-        {(source === 'coingecko' || source === 'tsetmc') && <div className="field"><label htmlFor="provider-id">{source === 'tsetmc' ? 'TSETMC instrument code' : 'CoinGecko ID'}</label><input id="provider-id" value={providerId} onChange={(e) => setProviderId(e.target.value)} /></div>}
-        <div className="field full"><label htmlFor="asset-notes">Notes</label><textarea id="asset-notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} /></div>
+        {(source === 'coingecko' || source === 'tsetmc') && <div className="field"><label htmlFor="provider-id">{source === 'tsetmc' ? 'TSETMC instrument code' : 'CoinGecko ID'}</label><input id="provider-id" value={providerId} onChange={(e) => setProviderId(e.target.value)} maxLength={160} /></div>}
+        <div className="field full"><label htmlFor="asset-notes">Notes</label><textarea id="asset-notes" value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={2000} rows={2} /></div>
       </div>
-      <div className="modal-actions">{asset && onDelete && <button type="button" className="danger-button" onClick={() => { onDelete(asset.id); onClose(); }}><Icon name="trash" /> Delete</button>}<span /><button type="button" className="secondary-button" onClick={onClose}>Cancel</button><button className="primary-button">Save asset</button></div>
+      {error && <p className="form-error" role="alert">{error}</p>}
+      <div className="modal-actions">{asset && onDelete && <button type="button" className="danger-button" onClick={() => { if (window.confirm(`Delete ${asset.name}? This cannot be undone.`)) { onDelete(asset.id); onClose(); } }}><Icon name="trash" /> Delete</button>}<span /><button type="button" className="secondary-button" onClick={onClose}>Cancel</button><button className="primary-button">Save asset</button></div>
     </form>
   </section></div>;
 }

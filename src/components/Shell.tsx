@@ -21,16 +21,18 @@ interface ShellProps {
 }
 
 export function Shell({ page, onPage, hidden, refreshing, online, status, onTogglePrivacy, onRefresh, onAdd, children }: ShellProps) {
+  const currentPage = nav.find((item) => item.id === page)?.label ?? 'Overview';
   return <div className="app-shell">
     <aside className="sidebar">
-      <button className="brand" onClick={() => onPage('overview')} aria-label="Northstar overview"><span className="brand-mark">✦</span><span>Northstar</span></button>
+      <button className="brand" onClick={() => onPage('overview')} aria-label="Northstar overview"><span className="brand-mark">N</span><span><strong>Northstar</strong><small>Personal finance</small></span></button>
       <nav aria-label="Primary navigation">{nav.map((item) => <button key={item.id} className={page === item.id ? 'nav-item active' : 'nav-item'} onClick={() => onPage(item.id)}><Icon name={item.id} /><span>{item.label}</span></button>)}</nav>
-      <div className="privacy-note"><span className="status-dot" />Private by default<br /><small>Data stays on this device</small></div>
+      <div className="privacy-note"><span className="status-dot" /><span><strong>Local-first</strong><small>Portfolio data stays private</small></span></div>
     </aside>
     <div className="main-column">
       <header className="topbar">
-        <div><p className="eyebrow">PERSONAL FINANCIAL POSITION</p><p className="top-status">{!online && <Icon name="wifiOff" />} {status}</p></div>
+        <div className="topbar-copy"><p className="eyebrow">PERSONAL FINANCE</p><p className="topbar-title">{currentPage}</p></div>
         <div className="top-actions">
+          <p className={online ? 'top-status' : 'top-status offline'}>{!online && <Icon name="wifiOff" />}<span>{status}</span></p>
           <button className="icon-button" onClick={onTogglePrivacy} aria-label={hidden ? 'Show financial values' : 'Hide financial values'} title={hidden ? 'Show values' : 'Hide values'}><Icon name={hidden ? 'eyeOff' : 'eye'} /></button>
           <button className="icon-button" onClick={onRefresh} disabled={refreshing} aria-label="Refresh market prices" title="Refresh prices"><Icon name="refresh" className={refreshing ? 'spinning' : ''} /></button>
           <button className="primary-button compact" onClick={onAdd}><Icon name="plus" /> Add asset</button>

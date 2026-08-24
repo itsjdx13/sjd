@@ -22,7 +22,9 @@ export function usePortfolio() {
 
   useEffect(() => {
     if (!ready) return;
-    const timer = window.setTimeout(() => void localStorageProvider.save({ ...data, updatedAt: new Date().toISOString() }), 150);
+    const timer = window.setTimeout(() => {
+      void localStorageProvider.save({ ...data, updatedAt: new Date().toISOString() }).catch(() => setStatus('Changes could not be persisted on this device'));
+    }, 150);
     return () => window.clearTimeout(timer);
   }, [data, ready]);
 

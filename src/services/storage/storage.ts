@@ -1,5 +1,6 @@
 import { openDB } from 'idb';
 import type { AppData } from '../../types/finance';
+import { validateBackup } from '../../utils/backup';
 
 export interface StorageProvider {
   load(): Promise<AppData | undefined>;
@@ -14,7 +15,10 @@ const dbPromise = openDB('northstar-finance', 1, {
 });
 
 export class IndexedDbStorageProvider implements StorageProvider {
-  async load() { return (await dbPromise).get('app', 'portfolio') as Promise<AppData | undefined>; }
+  async load() {
+    const stored = await (await dbPromise).get('app', 'portfolio') as unknown;
+    return stored === undefined ? undefined : validateBackup(stored);
+  }
   async save(data: AppData) { await (await dbPromise).put('app', data, 'portfolio'); }
   async clear() { await (await dbPromise).delete('app', 'portfolio'); }
 }

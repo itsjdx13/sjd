@@ -2,7 +2,7 @@ import type { Asset, AssetType, CurrencyCode } from '../../types/finance';
 import { allocationByType, assetValue, convertCurrency, type FxRates, portfolioTotals } from '../../utils/finance';
 import { formatMoney, formatPercent, relativeTime } from '../../utils/format';
 
-const colors: Record<AssetType, string> = { cash: '#c6ec56', crypto: '#ff9f68', stock: '#6fa8ff', iran_stock: '#b8a1ff', fund: '#48cfae', gold: '#f4c95d', currency: '#69c0d0', real_estate: '#eb7aa5', vehicle: '#a0a8b2', commodity: '#c98d65', custom: '#87909b', liability: '#ef6b6b' };
+const colors: Record<AssetType, string> = { cash: '#3c82f6', crypto: '#f28c52', stock: '#755ee8', iran_stock: '#a76dd8', fund: '#20a980', gold: '#d5a72f', currency: '#3699a7', real_estate: '#d76391', vehicle: '#7f8998', commodity: '#a86c4a', custom: '#697586', liability: '#dc5a62' };
 const labels: Record<AssetType, string> = { cash: 'Cash', crypto: 'Crypto', stock: 'Global equities', iran_stock: 'Iranian equities', fund: 'Funds', gold: 'Precious metals', currency: 'Currencies', real_estate: 'Real estate', vehicle: 'Vehicles', commodity: 'Commodities', custom: 'Other assets', liability: 'Liabilities' };
 
 interface Props { assets: Asset[]; base: CurrencyCode; rates: FxRates; hidden: boolean; compact: boolean; onCategory: (type: AssetType) => void; onPortfolio: () => void; }
@@ -17,11 +17,15 @@ export function Overview({ assets, base, rates, hidden, compact, onCategory, onP
   const segments = allocation.filter((item) => item.percent > 0).map((item) => { const start = cursor; cursor += item.percent; return `${colors[item.type]} ${start}% ${cursor}%`; }).join(', ');
   const largest = [...assets].sort((a, b) => Math.abs(convertCurrency(assetValue(b), b.currency, base, rates)) - Math.abs(convertCurrency(assetValue(a), a.currency, base, rates))).slice(0, 5);
   const money = (value: number) => hidden ? '••••••' : formatMoney(value, base, compact);
+  const investable = assets.filter((asset) => !['cash', 'currency', 'real_estate', 'vehicle', 'liability'].includes(asset.assetType)).reduce((sum, asset) => sum + convertCurrency(assetValue(asset), asset.currency, base, rates), 0);
+  const cash = allocation.filter((item) => item.type === 'cash' || item.type === 'currency').reduce((sum, item) => sum + item.value, 0);
+  const liabilities = Math.abs(allocation.find((item) => item.type === 'liability')?.value ?? 0);
+  const topAllocation = allocation.filter((item) => item.value > 0).slice(0, 6);
 
   return <div className="page-stack overview-page">
-    <section className="hero-grid">
+    <section className="hero-grid" aria-labelledby="net-worth-title">
       <div className="net-worth-panel">
-        <div className="section-label"><span>NET WORTH</span><span className="live-pill"><i />LOCAL</span></div>
+        <div className="section-label"><span id="net-worth-title">TOTAL NET WORTH</span><span className="live-pill"><i />PRIVATE</span></div>
         <h1 className={hidden ? 'private-value' : ''}>{money(totals.value)}</h1>
         <div className="hero-metrics">
           <div><span className={totals.dailyChange >= 0 ? 'positive' : 'negative'}>{hidden ? '••••' : formatPercent(dayPercent)}</span><small>Today</small></div>
@@ -29,15 +33,26 @@ export function Overview({ assets, base, rates, hidden, compact, onCategory, onP
           <div><span className={profit >= 0 ? 'positive' : 'negative'}>{hidden ? '••••' : formatPercent(profitPercent)}</span><small>All-time return</small></div>
         </div>
       </div>
-      <aside className="signal-panel"><p className="eyebrow">POSITION SUMMARY</p><div className="signal-row"><span>Assets</span><strong>{assets.filter((a) => a.assetType !== 'liability').length}</strong></div><div className="signal-row"><span>Liabilities</span><strong>{money(Math.abs(allocation.find((a) => a.type === 'liability')?.value ?? 0))}</strong></div><div className="signal-row"><span>Unrealized P&amp;L</span><strong className={profit >= 0 ? 'positive' : 'negative'}>{money(profit)}</strong></div></aside>
+      <aside className="performance-panel">
+        <div><p className="eyebrow">TODAY</p><strong className={totals.dailyChange >= 0 ? 'positive' : 'negative'}>{hidden ? '••••' : formatPercent(dayPercent)}</strong><span>{money(totals.dailyChange)}</span></div>
+        <div className="performance-track" aria-hidden="true"><i style={{ width: `${Math.min(100, Math.max(8, Math.abs(dayPercent) * 20))}%` }} /></div>
+        <small>Across {assets.filter((asset) => asset.assetType !== 'liability').length} tracked assets</small>
+      </aside>
+    </section>
+
+    <section className="kpi-strip" aria-label="Portfolio summary">
+      <article><span>Investments</span><strong>{money(investable)}</strong><small>Market-priced holdings</small></article>
+      <article><span>Cash &amp; currencies</span><strong>{money(cash)}</strong><small>Available liquidity</small></article>
+      <article><span>Unrealized P&amp;L</span><strong className={profit >= 0 ? 'positive' : 'negative'}>{money(profit)}</strong><small>{hidden ? '••••' : formatPercent(profitPercent)} return</small></article>
+      <article><span>Liabilities</span><strong>{money(liabilities)}</strong><small>{liabilities ? 'Included in net worth' : 'No liabilities recorded'}</small></article>
     </section>
 
     <section className="content-grid">
       <div className="panel allocation-panel">
         <div className="panel-heading"><div><p className="eyebrow">DISTRIBUTION</p><h2>Asset allocation</h2></div><span>{allocation.filter((a) => a.value > 0).length} categories</span></div>
         <div className="allocation-content">
-          <div className="donut" style={{ background: segments ? `conic-gradient(${segments})` : '#e4e7e1' }}><div><strong>{hidden ? '••' : '100%'}</strong><small>allocated</small></div></div>
-          <div className="allocation-list">{allocation.map((item) => <button key={item.type} onClick={() => onCategory(item.type)}><i style={{ background: colors[item.type] }} /><span>{labels[item.type]}</span><strong>{money(item.value)}</strong><small>{item.value > 0 ? `${item.percent.toFixed(1)}%` : 'debt'}</small></button>)}</div>
+          <div className="allocation-bar" aria-label="Allocation chart" style={{ background: segments ? `linear-gradient(90deg, ${segments})` : '#e4e7e1' }} />
+          <div className="allocation-list">{topAllocation.map((item) => <button key={item.type} onClick={() => onCategory(item.type)}><i style={{ background: colors[item.type] }} /><span>{labels[item.type]}</span><strong>{money(item.value)}</strong><small>{item.percent.toFixed(1)}%</small></button>)}</div>
         </div>
       </div>
       <div className="panel holdings-panel">

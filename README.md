@@ -32,7 +32,7 @@ The UI never fetches provider APIs directly. `MarketDataService` batches crypto 
 
 Open `/styleguide` during development to inspect the Northstar foundation and initial shadcn primitives. The Vite-native setup includes Tailwind CSS v4, `components.json`, the `@/` import alias, and reusable Button, Card, Badge, Alert, and Radio Group components under `src/components/ui/`.
 
-The design tokens live at the top of `src/styles.css`. They include complete lime primary and graphite neutral scales, light/dark semantic roles, accessible status colors, five chart colors, sidebar roles, spacing-aware radii, and restrained elevation. The styleguide implementation is lazy-loaded from `src/features/styleguide/`, so it does not increase the dashboard's initial JavaScript bundle.
+The design tokens live at the top of `src/styles.css`. They include complete blue primary and graphite neutral scales, light/dark semantic roles, accessible status colors, five chart colors, sidebar roles, spacing-aware radii, and restrained elevation. The styleguide implementation is lazy-loaded from `src/features/styleguide/`, so it does not increase the dashboard's initial JavaScript bundle.
 
 ## Install and run
 
@@ -92,6 +92,15 @@ RLS restricts every row to `auth.uid()`. Passwords and tokens are held only for 
 
 Portfolio data, preferences, watchlist, and transactions are stored in the browser's IndexedDB database `northstar-finance`. Market providers receive symbols only—not quantities, cost basis, properties, or total wealth. Clearing browser site data deletes local records, so export a JSON backup regularly. Restoring a backup replaces the current local portfolio and does not merge demo records.
 
+### Security controls
+
+- Backup imports are capped at 5 MB and validated field-by-field before replacing local data.
+- CSV exports neutralize spreadsheet-formula prefixes to prevent formula execution when opened in office software.
+- Market and sync requests omit credentials/referrers, use short timeouts, and reject oversized declared responses.
+- Supabase URLs must use HTTPS, except explicit localhost development; portfolio snapshots remain protected by RLS.
+- Cloudflare/Netlify `_headers` and `vercel.json` apply CSP, clickjacking protection, MIME sniffing protection, restrictive browser permissions, and HSTS.
+- React renders all user text without unsafe HTML. API or brokerage secrets must never be placed in the frontend.
+
 ## PWA installation and offline use
 
 - **iPhone/iPad:** open the HTTPS deployment in Safari → Share → Add to Home Screen.
@@ -108,7 +117,7 @@ The service worker caches the application shell, font, and successful public quo
 3. Add optional `VITE_*` variables in Pages settings.
 4. Deploy. `_headers` applies a restrictive CSP and `_redirects` supports SPA navigation.
 
-GitHub Pages, Netlify, and Vercel can also serve `dist`, but verify their current free-tier terms before relying on them.
+Vercel is also configured through `vercel.json`; import the repository, keep the Vite defaults (`npm run build`, `dist`), and deploy. GitHub Pages and Netlify can serve `dist` as well, but verify their current free-tier terms before relying on them.
 
 ## Accuracy notes
 

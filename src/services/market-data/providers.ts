@@ -5,8 +5,10 @@ async function fetchJson(url: string, timeoutMs = 6000): Promise<unknown> {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(url, { signal: controller.signal, headers: { Accept: 'application/json' } });
+    const response = await fetch(url, { signal: controller.signal, headers: { Accept: 'application/json' }, credentials: 'omit', referrerPolicy: 'no-referrer' });
     if (!response.ok) throw new Error(`Provider returned ${response.status}`);
+    const declaredLength = Number(response.headers.get('content-length') ?? 0);
+    if (declaredLength > 2_000_000) throw new Error('Provider response exceeded the safety limit.');
     return await response.json() as unknown;
   } finally {
     window.clearTimeout(timeout);
