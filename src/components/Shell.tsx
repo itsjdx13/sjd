@@ -35,7 +35,7 @@ export function Shell({ page, onPage, hidden, refreshing, online, status, onTogg
           <p className={online ? 'top-status' : 'top-status offline'}>{!online && <Icon name="wifiOff" />}<span>{status}</span></p>
           <button className="icon-button" onClick={onTogglePrivacy} aria-label={hidden ? 'Show financial values' : 'Hide financial values'} title={hidden ? 'Show values' : 'Hide values'}><Icon name={hidden ? 'eyeOff' : 'eye'} /></button>
           <button className="icon-button" onClick={onRefresh} disabled={refreshing} aria-label="Refresh market prices" title="Refresh prices"><Icon name="refresh" className={refreshing ? 'spinning' : ''} /></button>
-          <button className="primary-button compact" onClick={onAdd}><Icon name="plus" /> Add asset</button>
+          <button className="primary-button compact" onClick={onAdd}><Icon name="plus" /><span>Add asset</span></button>
         </div>
       </header>
       <main>{children}</main>
