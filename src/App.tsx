@@ -17,9 +17,8 @@ export default function App() {
   const [modal, setModal] = useState<Asset | 'new' | null>(null);
   const [filter, setFilter] = useState<AssetType>();
   const [online, setOnline] = useState(navigator.onLine);
-  const [conventional, setConventional] = useState({ EUR: 0.86, GBP: 0.75 });
   const refreshed = useRef(false);
-  const rates = createFxRates(portfolio.data.preferences.usdIrrRate, conventional);
+  const rates = createFxRates(portfolio.data.preferences.usdIrrRate, portfolio.data.preferences.fxRates ?? { EUR: 0.86, GBP: 0.75, AED: 3.6725 });
 
   useEffect(() => {
     const up = () => setOnline(true), down = () => setOnline(false);
@@ -36,7 +35,7 @@ export default function App() {
     if (!portfolio.ready || refreshed.current) return;
     refreshed.current = true;
     void portfolio.refresh(false);
-    fetchConventionalFx('USD').then((result) => setConventional({ EUR: result.rates.EUR ?? 0.86, GBP: result.rates.GBP ?? 0.75 })).catch(() => undefined);
+    fetchConventionalFx('USD').then((result) => portfolio.updatePreferences({ fxRates: { ...portfolio.data.preferences.fxRates, ...result.rates, AED: 3.6725 }, fxLastUpdated: result.timestamp })).catch(() => undefined);
   }, [portfolio.ready, portfolio.refresh]);
 
   useEffect(() => {

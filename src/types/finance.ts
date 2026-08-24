@@ -60,6 +60,8 @@ export interface Preferences {
   refreshMinutes: number;
   usdIrrRate: number;
   tsetmcEnabled: boolean;
+  fxRates?: Partial<Record<CurrencyCode, number>>;
+  fxLastUpdated?: string;
 }
 
 export interface AppData {
