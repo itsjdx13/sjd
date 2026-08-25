@@ -2,6 +2,8 @@
 
 SJD Project combines personal finance, habits, tasks, activities, and planning in one private workspace. The interface uses a ClickUp-inspired navigation model and a TradingView-inspired portfolio terminal while remaining intentionally simple.
 
+It also includes five optional professional interface themes and a private Dr. Majed mentor library for searchable principles, imported text notes, pinned lessons, and action conversion.
+
 ## Stack
 
 - Next.js and React for the web/PWA frontend
@@ -43,3 +45,5 @@ Build and serve over HTTPS in production. On Android or Windows, use the browser
 ## Privacy and cost
 
 There are no analytics, trackers, paid APIs, or required cloud services. Portfolio values are demo/manual data; market ticker values are illustrative until a free provider adapter is connected. Never put brokerage credentials or PostgreSQL secrets in browser-exposed variables.
+
+See [`SECURITY.md`](SECURITY.md) for implemented protections and the owner’s step-by-step security checklist. PostgreSQL sync is disabled by default until an authenticated client is added.

@@ -34,7 +34,7 @@ Client data is local-first. The optional PostgreSQL boundary belongs in `app/api
 
 ## Testing & Reviews
 
-Automated tests are not configured yet. Before submitting, run `npm run typecheck` and `npm run build`, then manually check `/`, `/portfolio`, `/life`, `/calendar`, and `/settings` at desktop and mobile widths. Test adding an asset/task, habit toggles, backup export/import, and PWA installation.
+Automated tests are not configured yet. Before submitting, run `npm audit --audit-level=high`, `npm run typecheck`, and `npm run build`, then manually check `/`, `/portfolio`, `/life`, `/calendar`, `/mentor`, and `/settings` at desktop and mobile widths. Test theme switching, notes, adding an asset/task, habit toggles, backup export/import, and PWA installation.
 
 Use concise imperative commits, commonly `feat: ...` or `fix: ...`. Pull requests should summarize behavior, verification, schema/environment changes, and include screenshots for visual work.
 

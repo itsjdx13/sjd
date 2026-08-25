@@ -1,5 +1,7 @@
 export type Currency = 'USD' | 'EUR' | 'GBP' | 'AED' | 'IRR' | 'IRT';
 export type AssetType = 'crypto' | 'stock' | 'fund' | 'gold' | 'cash' | 'property' | 'vehicle' | 'liability';
+export type ThemeId = 'midnight' | 'terminal' | 'aurora' | 'polar' | 'sandstone';
+export type MentorCategory = 'Mindset' | 'Wealth' | 'Markets' | 'Practice';
 
 export interface Asset {
   id: string;
@@ -37,6 +39,15 @@ export interface Activity {
   date: string;
 }
 
+export interface MentorNote {
+  id: string;
+  title: string;
+  body: string;
+  category: MentorCategory;
+  pinned: boolean;
+  createdAt: string;
+}
+
 export interface WorkspaceData {
   assets: Asset[];
   habits: Habit[];
@@ -44,4 +55,6 @@ export interface WorkspaceData {
   activities: Activity[];
   displayName: string;
   baseCurrency: Currency;
+  theme: ThemeId;
+  mentorNotes: MentorNote[];
 }

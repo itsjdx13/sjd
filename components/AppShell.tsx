@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bell, CalendarDays, CheckSquare2, CircleHelp, Command, LayoutDashboard, Menu, Search, Settings, TrendingUp, WalletCards, X } from 'lucide-react';
+import { Bell, BookOpenText, CalendarDays, CheckSquare2, CircleHelp, Command, LayoutDashboard, Menu, Search, Settings, TrendingUp, WalletCards, X } from 'lucide-react';
 import { useState } from 'react';
 import { useStore } from '@/lib/store';
 
@@ -12,6 +12,7 @@ const nav = [
   { href: '/portfolio', label: 'Portfolio', icon: WalletCards },
   { href: '/life', label: 'Life & work', icon: CheckSquare2 },
   { href: '/calendar', label: 'Calendar', icon: CalendarDays },
+  { href: '/mentor', label: 'Dr. Majed', icon: BookOpenText },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
