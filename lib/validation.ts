@@ -14,5 +14,6 @@ export function isWorkspaceData(value: unknown): value is WorkspaceData {
   if (!Array.isArray(data.tasks) || data.tasks.length > 5_000 || !data.tasks.every(task => task && isString(task.id, 100) && isString(task.title, 300) && isString(task.project, 120) && isString(task.due, 20) && typeof task.done === 'boolean')) return false;
   if (!Array.isArray(data.activities) || data.activities.length > 5_000 || !data.activities.every(activity => activity && isString(activity.id, 100) && isString(activity.title, 300) && isNumber(activity.minutes) && isString(activity.date, 20))) return false;
   if (!Array.isArray(data.mentorNotes) || data.mentorNotes.length > 2_000 || !data.mentorNotes.every(note => note && isString(note.id, 100) && isString(note.title, 300) && isString(note.body, 200_000) && typeof note.pinned === 'boolean' && isString(note.createdAt, 20))) return false;
+  if (!Array.isArray(data.resources) || data.resources.length > 2_000 || !data.resources.every(resource => resource && isString(resource.id, 100) && isString(resource.title, 300) && isString(resource.fileName, 300) && isString(resource.content, 1_000_000) && isString(resource.createdAt, 20) && isString(resource.updatedAt, 20))) return false;
   return true;
 }

@@ -1,8 +1,8 @@
 # SJD Project
 
-SJD Project combines personal finance, habits, tasks, activities, and planning in one private workspace. The interface uses a ClickUp-inspired navigation model and a TradingView-inspired portfolio terminal while remaining intentionally simple.
+SJD Project combines personal finance, habits, tasks, activities, planning, and personal knowledge in one private workspace. Its compact terminal interface is inspired by TradingView's workspace hierarchy while remaining intentionally simple.
 
-It also includes five optional professional interface themes and a private Dr. Majed mentor library for searchable principles, imported text notes, pinned lessons, and action conversion.
+It also includes five optional professional themes, a private Dr. Majed mentor library, and a local-first Markdown resource library. Resources can be created, searched, edited, safely previewed, uploaded, and downloaded as `.md` files.
 
 ## Stack
 
@@ -28,6 +28,8 @@ npm run build
 npm run start
 ```
 
+Main routes are `/`, `/portfolio`, `/life`, `/calendar`, `/mentor`, `/resources`, and `/settings`.
+
 ## Optional PostgreSQL
 
 The app does not require a database for local use. For sync, create a PostgreSQL database (local PostgreSQL, Neon, or Supabase are compatible), run `database/schema.sql`, copy `.env.example` to `.env.local`, and set `DATABASE_URL`. The API endpoints are:
@@ -44,6 +46,6 @@ Build and serve over HTTPS in production. On Android or Windows, use the browser
 
 ## Privacy and cost
 
-There are no analytics, trackers, paid APIs, or required cloud services. Portfolio values are demo/manual data; market ticker values are illustrative until a free provider adapter is connected. Never put brokerage credentials or PostgreSQL secrets in browser-exposed variables.
+There are no analytics, trackers, paid APIs, or required cloud services. Markdown previews never execute embedded HTML, and uploads are limited to `.md`/`.markdown` files up to 1 MB. Portfolio values are demo/manual data; market ticker values are illustrative until a free provider adapter is connected. Never put brokerage credentials or PostgreSQL secrets in browser-exposed variables.
 
 See [`SECURITY.md`](SECURITY.md) for implemented protections and the owner’s step-by-step security checklist. PostgreSQL sync is disabled by default until an authenticated client is added.

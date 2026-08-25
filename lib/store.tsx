@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import type { Activity, Asset, Currency, Habit, MentorNote, Task, ThemeId, WorkspaceData } from './types';
+import type { Activity, Asset, Currency, Habit, MentorNote, ResourceDocument, Task, ThemeId, WorkspaceData } from './types';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const day = (offset: number) => {
@@ -43,6 +43,11 @@ const seed: WorkspaceData = {
     { id: 'm5', title: 'Fundamental before tactical', body: 'Start from the world, then region, country, industry, and company. Technical and fundamental analysis should confirm rather than replace each other.', category: 'Markets', pinned: false, createdAt: '2026-08-25' },
     { id: 'm6', title: 'Identity is a direction', body: 'نگو من کی بودم، بگو کی می‌خواهم باشم؟ Let current choices be evidence for the person you are becoming.', category: 'Mindset', pinned: false, createdAt: '2026-08-25' },
   ],
+  resources: [
+    { id: 'r1', title: 'Personal Investment Policy', fileName: 'investment-policy.md', folder: 'Playbooks', createdAt: '2026-08-25', updatedAt: '2026-08-25', content: '# Personal Investment Policy\n\n## Purpose\nProtect capital, compound patiently, and make decisions from a written process.\n\n## Core rules\n- Keep an adequate cash reserve.\n- Define price risk and time risk before entry.\n- Never act on a quote without checking its currency and unit.\n- Review allocation monthly, not emotionally.\n\n> A repeatable process matters more than one perfect trade.' },
+    { id: 'r2', title: 'Weekly Review Template', fileName: 'weekly-review.md', folder: 'Journal', createdAt: '2026-08-25', updatedAt: '2026-08-25', content: '# Weekly Review\n\n## Wins\n- What created momentum?\n\n## Friction\n- What repeatedly slowed me down?\n\n## Wealth\n- Did any allocation or thesis materially change?\n\n## Next week\n- [ ] One financial priority\n- [ ] One health priority\n- [ ] One relationship priority' },
+    { id: 'r3', title: 'Research Checklist', fileName: 'research-checklist.md', folder: 'Research', createdAt: '2026-08-25', updatedAt: '2026-08-25', content: '# Research Checklist\n\n1. Start with the global macro context.\n2. Review region, country, and industry.\n3. Understand the company or asset fundamentals.\n4. Define the thesis in one sentence.\n5. Record invalidation conditions.\n6. Size the position before entry.\n\n**Reminder:** Verify all market data with a primary source.' },
+  ],
 };
 
 type Store = WorkspaceData & {
@@ -60,6 +65,9 @@ type Store = WorkspaceData & {
   removeMentorNote(id: string): void;
   toggleMentorNotePin(id: string): void;
   turnMentorNoteIntoTask(id: string): void;
+  addResource(resource: Omit<ResourceDocument, 'id' | 'createdAt' | 'updatedAt'>): string;
+  updateResource(id: string, patch: Pick<ResourceDocument, 'title' | 'content' | 'folder'>): void;
+  removeResource(id: string): void;
   replaceData(data: WorkspaceData): void;
   reset(): void;
 };
@@ -75,7 +83,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const saved = localStorage.getItem(storageKey);
       if (saved) {
         const parsed = JSON.parse(saved) as Partial<WorkspaceData>;
-        setData({ ...seed, ...parsed, mentorNotes: Array.isArray(parsed.mentorNotes) ? parsed.mentorNotes : seed.mentorNotes, theme: parsed.theme || 'midnight' });
+        setData({ ...seed, ...parsed, mentorNotes: Array.isArray(parsed.mentorNotes) ? parsed.mentorNotes : seed.mentorNotes, resources: Array.isArray(parsed.resources) ? parsed.resources : seed.resources, theme: parsed.theme || 'midnight' });
       }
     } catch { /* keep safe demo */ }
     setHydrated(true);
@@ -100,6 +108,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     removeMentorNote: (id) => setData(current => ({ ...current, mentorNotes: current.mentorNotes.filter(note => note.id !== id) })),
     toggleMentorNotePin: (id) => setData(current => ({ ...current, mentorNotes: current.mentorNotes.map(note => note.id === id ? { ...note, pinned: !note.pinned } : note) })),
     turnMentorNoteIntoTask: (id) => setData(current => { const note = current.mentorNotes.find(item => item.id === id); return note ? { ...current, tasks: [{ id: crypto.randomUUID(), title: `Apply: ${note.title}`, project: 'Dr. Majed', due: today(), priority: 'medium', done: false }, ...current.tasks] } : current; }),
+    addResource: (resource) => { const id = crypto.randomUUID(); setData(current => ({ ...current, resources: [{ ...resource, id, createdAt: today(), updatedAt: today() }, ...current.resources] })); return id; },
+    updateResource: (id, patch) => setData(current => ({ ...current, resources: current.resources.map(resource => resource.id === id ? { ...resource, ...patch, fileName: `${patch.title.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'resource'}.md`, updatedAt: today() } : resource) })),
+    removeResource: (id) => setData(current => ({ ...current, resources: current.resources.filter(resource => resource.id !== id) })),
     replaceData: setData,
     reset: () => setData(seed),
   }), [data, hydrated]);

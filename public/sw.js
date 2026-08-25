@@ -1,5 +1,5 @@
 const CACHE = 'sjd-project-v2';
-const SHELL = ['/', '/portfolio', '/life', '/calendar', '/mentor', '/settings', '/icon-192.png', '/icon-512.png', '/sjd-logo.png'];
+const SHELL = ['/', '/portfolio', '/life', '/calendar', '/mentor', '/resources', '/settings', '/icon-192.png', '/icon-512.png', '/sjd-logo.png'];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL))));
 self.addEventListener('activate', event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key))))));
 self.addEventListener('fetch', event => {
