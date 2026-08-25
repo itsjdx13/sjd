@@ -1,10 +1,12 @@
 node_modules/
+.next/
+out/
 dist/
-.env
-.env.local
+release/
 *.log
 *.tsbuildinfo
-artifacts/
+.env
+.env*.local
 .vercel/
+artifacts/
 majed/
-.DS_Store

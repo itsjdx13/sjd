@@ -1,124 +1,45 @@
-# Northstar Personal Finance
+# SJD Project
 
-A private, local-first personal finance terminal for investments, cash, currencies, Iranian assets, precious metals, property, vehicles, custom assets, and liabilities. It is an installable React PWA designed for one person and a permanent **$0 operating cost**.
+SJD Project combines personal finance, habits, tasks, activities, and planning in one private workspace. The interface uses a ClickUp-inspired navigation model and a TradingView-inspired portfolio terminal while remaining intentionally simple.
 
-## What works
+## Stack
 
-- Instant IndexedDB portfolio load with clearly separated demo data
-- Net worth, daily change, cost basis, profit/loss, and asset allocation
-- Sortable holdings, manual assets, properties, ownership percentages, and liabilities
-- USD, EUR, GBP, AED, IRR, and IRT display; `1 IRT = 10 IRR` is explicit
-- CoinGecko crypto, Gold API metals, Frankfurter FX, optional Alpha Vantage stocks, and cached TSETMC quotes
-- Ayar / `عیار` with manual units and automatic public TSETMC pricing in Rial per fund unit
-- Watchlist, privacy mode, light/dark/system appearance, and cached price status
-- Position-size, risk/reward, P&L, pip, and margin calculators
-- JSON backup/restore and CSV export
-- Offline application shell and cached provider responses
-- Optional Supabase email/password snapshot sync with row-level security
+- Next.js and React for the web/PWA frontend
+- Next.js Node.js route handlers for the backend API
+- PostgreSQL for optional cross-device persistence
+- Browser `localStorage` as the free, zero-configuration default
 
-No analytics, ads, trackers, paid APIs, server requirement, or Mofid credentials are used.
+## Run locally
 
-## Architecture
+Requires Node.js 20.19 or newer.
 
-```text
-React UI → calculation/services layer → provider adapters → public APIs
-                              ↘ IndexedDB (source of truth)
-                               ↘ optional Supabase snapshot sync
-```
-
-The UI never fetches provider APIs directly. `MarketDataService` batches crypto requests, deduplicates in-flight requests, applies provider-specific cache TTLs, and retains cached prices on errors. The normalized data types live in `src/types/finance.ts`; calculation code is in `src/utils/finance.ts`; providers are under `src/services/market-data/`.
-
-## Design system
-
-Open `/styleguide` during development to inspect the Northstar foundation and initial shadcn primitives. The Vite-native setup includes Tailwind CSS v4, `components.json`, the `@/` import alias, and reusable Button, Card, Badge, Alert, and Radio Group components under `src/components/ui/`.
-
-The design tokens live at the top of `src/styles.css`. They include complete blue primary and graphite neutral scales, light/dark semantic roles, accessible status colors, five chart colors, sidebar roles, spacing-aware radii, and restrained elevation. The styleguide implementation is lazy-loaded from `src/features/styleguide/`, so it does not increase the dashboard's initial JavaScript bundle.
-
-## Install and run
-
-Requires a current Node.js LTS release.
-
-```bash
+```powershell
 npm install
 npm run dev
 ```
 
-Other commands:
+Open `http://localhost:3000`. The starter workspace is editable and stays on the device. Verify production output with:
 
-```bash
-npm test        # business-critical finance calculations
-npm run build   # strict TypeScript check + optimized PWA build
-npm run preview # serve the production build locally
+```powershell
+npm run typecheck
+npm run build
+npm run start
 ```
 
-The first launch shows removable demo assets. Settings → **Remove demo data** clears them before you enter or restore personal data.
+## Optional PostgreSQL
 
-## Market-data providers
+The app does not require a database for local use. For sync, create a PostgreSQL database (local PostgreSQL, Neon, or Supabase are compatible), run `database/schema.sql`, copy `.env.example` to `.env.local`, and set `DATABASE_URL`. The API endpoints are:
 
-Research was checked on 24 Aug 2026. Providers can change their terms or limits, so cached/manual pricing is always the fallback.
+- `GET /api/health`: storage/database status
+- `GET /api/sync`: load the saved workspace
+- `PUT /api/sync`: save a workspace payload
 
-| Provider | Use | Key / current free limit | Behavior |
-| --- | --- | --- | --- |
-| [CoinGecko Public API](https://docs.coingecko.com/docs/keyless-public-api) | BTC, ETH, SOL, USDT | No key; IP rate limiting, low-volume non-commercial use | Batched, 60-second cache |
-| [Frankfurter](https://frankfurter.dev/) | Conventional FX | No key; no quota, fair-use rate limiting; central-bank reference rates | Daily/reference data, 15-minute app cache |
-| [Gold API](https://gold-api.com/docs) | XAU, XAG | No key; real-time endpoint advertised without a quota | Five-minute cache; verify before trading |
-| [Alpha Vantage](https://www.alphavantage.co/support/) | International equities | Optional key; 25 requests/day; free US data is not real-time/15-minute | Labeled delayed, five-minute cache |
-| [TSETMC public endpoint reference](https://github.com/solitraderbusiness/tsetmc-mcp/blob/main/docs/endpoints.md) | Iranian instruments / Ayar | Keyless and public, but undocumented by the exchange with no SLA; access can be geographically restricted | Five-minute cache, exchange timestamp, cached/manual fallback |
-| Manual | Property, cash, Mofid holdings, IRR FX | Unlimited, offline | User-maintained |
+The current sync route is deliberately single-user. Add authentication and replace the temporary user ID before exposing it publicly to multiple users.
 
-No authenticated Mofid API suitable for this personal client was verified. The app therefore never signs in to Mofid and never scrapes account data. Record the owned units manually, then use a legitimate public quote where available. Ayar is mapped to TSETMC instrument `34144395039913458`; its quote is explicitly treated as IRR per unit and marked with the exchange update time. TradingView and Bloomberg are navigation/research products only and are not critical data dependencies.
+## PWA installation
 
-### Optional keys
+Build and serve over HTTPS in production. On Android or Windows, use the browser's **Install app** action. On iPhone/iPad, open the site in Safari, choose **Share**, then **Add to Home Screen**. The service worker caches the application shell for reliable navigation after the first successful load.
 
-Copy `.env.example` to `.env.local`. Vite variables are visible to the browser: only place a personal, restricted public-data key here—never a brokerage credential or service-role key.
+## Privacy and cost
 
-```env
-VITE_ALPHA_VANTAGE_API_KEY=
-VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
-```
-
-## Optional cross-device sync
-
-Local IndexedDB remains authoritative. To enable Supabase:
-
-1. Create a free Supabase project and run `supabase/schema.sql` in its SQL editor.
-2. Add its URL and **anon** key to `.env.local`; never use the service-role key.
-3. Restart the app, open Settings, create/sign in to an account, then explicitly upload or download a snapshot.
-
-RLS restricts every row to `auth.uid()`. Passwords and tokens are held only for the open app session and are never exported. The [Supabase free plan](https://supabase.com/pricing) currently includes 500 MB database, 5 GB egress, and 50,000 MAU, but pauses projects after one inactive week. Sync failure never affects local operation.
-
-## Privacy and backups
-
-Portfolio data, preferences, watchlist, and transactions are stored in the browser's IndexedDB database `northstar-finance`. Market providers receive symbols only—not quantities, cost basis, properties, or total wealth. Clearing browser site data deletes local records, so export a JSON backup regularly. Restoring a backup replaces the current local portfolio and does not merge demo records.
-
-### Security controls
-
-- Backup imports are capped at 5 MB and validated field-by-field before replacing local data.
-- CSV exports neutralize spreadsheet-formula prefixes to prevent formula execution when opened in office software.
-- Market and sync requests omit credentials/referrers, use short timeouts, and reject oversized declared responses.
-- Supabase URLs must use HTTPS, except explicit localhost development; portfolio snapshots remain protected by RLS.
-- Cloudflare/Netlify `_headers` and `vercel.json` apply CSP, clickjacking protection, MIME sniffing protection, restrictive browser permissions, and HSTS.
-- React renders all user text without unsafe HTML. API or brokerage secrets must never be placed in the frontend.
-
-## PWA installation and offline use
-
-- **iPhone/iPad:** open the HTTPS deployment in Safari → Share → Add to Home Screen.
-- **Android/desktop:** use the browser's Install app action.
-
-The service worker caches the application shell, font, and successful public quote responses. Offline mode shows the portfolio, manual/cached values, property records, settings, and calculators. Live refresh resumes when connectivity returns.
-
-## Free deployment
-
-[Cloudflare Pages](https://developers.cloudflare.com/pages/) is recommended: static asset requests are free/unlimited, the free plan allows 500 builds/month and 20,000 files, and this app needs no Functions.
-
-1. Push the repository to GitHub or GitLab.
-2. Create a Pages project with build command `npm run build` and output directory `dist`.
-3. Add optional `VITE_*` variables in Pages settings.
-4. Deploy. `_headers` applies a restrictive CSP and `_redirects` supports SPA navigation.
-
-Vercel is also configured through `vercel.json`; import the repository, keep the Vite defaults (`npm run build`, `dist`), and deploy. GitHub Pages and Netlify can serve `dist` as well, but verify their current free-tier terms before relying on them.
-
-## Accuracy notes
-
-This is a personal tracking tool, not an execution or accounting system. Public quotes may be delayed, incomplete, unavailable, or denominated differently by a market. Verify instrument units—especially Iranian funds and Rial/Toman prices—before entering quantities. Property values and Mofid ownership remain manual by design.
+There are no analytics, trackers, paid APIs, or required cloud services. Portfolio values are demo/manual data; market ticker values are illustrative until a free provider adapter is connected. Never put brokerage credentials or PostgreSQL secrets in browser-exposed variables.

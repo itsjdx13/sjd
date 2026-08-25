@@ -1,36 +1,43 @@
 # Repository Guidelines
 
-## Project Structure & Module Organization
+## Canonical Project
 
-This repository currently contains a single content area:
+`sjd-project/` is the single active application. It combines portfolio management, habits, tasks, activities, and planning in a Next.js PWA. The older `life OS/`, `personal dashboard/`, and `life-os-app/` folders are reference implementations only; do not add features there unless explicitly asked.
 
-- `majed/notes.txt`: the primary collection of personal, finance, and trading notes.
-- `AGENTS.md`: contributor instructions for maintaining the repository.
+## Project Structure
 
-Keep related notes under `majed/`. If the collection grows, split content into clearly named topic files such as `majed/trading-indicators.md` or `majed/mindset.md`; avoid adding unrelated files at the repository root. Create `assets/` only when notes need referenced images or documents.
+- `sjd-project/app/`: App Router pages and Node.js API route handlers.
+- `sjd-project/components/`: shared shell, charts, and UI primitives.
+- `sjd-project/lib/`: domain types, local-first store, finance calculations, and PostgreSQL connection.
+- `sjd-project/database/schema.sql`: idempotent PostgreSQL setup.
+- `sjd-project/public/`: PWA worker and generated SJD brand assets.
 
-## Build, Test, and Development Commands
+Do not edit generated `.next/`, `out/`, `dist/`, `release/`, or `tsconfig.tsbuildinfo` files.
 
-There is currently no application, package manifest, build system, or automated test suite. Use lightweight checks when editing:
+## Development Commands
+
+Run commands from `sjd-project/`:
 
 ```powershell
-rg --files
-rg "MACD" majed/notes.txt
-Get-Content -LiteralPath majed/notes.txt -TotalCount 20
+npm install         # install exact dependencies from package-lock.json
+npm run dev         # start Next.js locally
+npm run typecheck   # validate strict TypeScript
+npm run build       # create the production server build
+npm run start       # serve the production build
 ```
 
-`rg --files` reviews the repository contents, `rg` locates terms without modifying the source, and `Get-Content` performs a quick readability check. If executable code is added later, document its setup, run, lint, and test commands here in the same change.
+## Style & Architecture
 
-## Content Style & Naming Conventions
+Use TypeScript, functional React components, two-space indentation, semicolons, and PascalCase component names. Keep route files focused on composition; put shared UI in `components/` and domain logic in `lib/`. Reuse CSS variables from `app/globals.css`, especially the SJD palette, rather than adding one-off colors. Preserve responsive behavior, keyboard focus, touch targets, and reduced-motion support.
 
-Use UTF-8 for new text files. The existing notes include Persian and English text and may contain legacy encoding artifacts; do not run bulk encoding conversion or automatic cleanup without reviewing the diff. Prefer Markdown for newly structured notes, lowercase descriptive filenames, and hyphens between words. Keep headings short, use one topic per section, and preserve original quotations or terminology when reorganizing source material.
+Client data is local-first. The optional PostgreSQL boundary belongs in `app/api/`; never import database code into client components. Keep SQL changes idempotent.
 
-## Testing Guidelines
+## Testing & Reviews
 
-No testing framework or coverage requirement is configured. Before submitting a content change, inspect the diff, confirm non-Latin text remains readable, verify links and paths, and search for accidental duplicate or truncated sections. Any future code should include tests in a conventional `tests/` directory or beside source files, following the framework's standard naming pattern.
+Automated tests are not configured yet. Before submitting, run `npm run typecheck` and `npm run build`, then manually check `/`, `/portfolio`, `/life`, `/calendar`, and `/settings` at desktop and mobile widths. Test adding an asset/task, habit toggles, backup export/import, and PWA installation.
 
-## Commit & Pull Request Guidelines
+Use concise imperative commits, commonly `feat: ...` or `fix: ...`. Pull requests should summarize behavior, verification, schema/environment changes, and include screenshots for visual work.
 
-Git history is not available in this workspace, so no existing commit convention can be inferred. Use concise, imperative commit subjects, optionally with a Conventional Commit prefix, for example `docs: organize trading indicator notes`.
+## Security
 
-Pull requests should explain the purpose and scope, identify renamed or split files, and note any encoding changes. Link relevant issues when available. Include screenshots only for rendered documents or other visual changes.
+Copy `.env.example` to `.env.local`; never commit credentials. `DATABASE_URL` is server-only. Do not add brokerage secrets, analytics, trackers, or paid dependencies without explicit approval.
