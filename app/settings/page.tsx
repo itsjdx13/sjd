@@ -8,11 +8,11 @@ import type { Currency, ThemeId, WorkspaceData } from '@/lib/types';
 import { isWorkspaceData } from '@/lib/validation';
 
 const themes: Array<{ id: ThemeId; name: string; description: string; colors: string[] }> = [
-  { id: 'midnight', name: 'SJD Midnight', description: 'Signature navy and cyan', colors: ['#070B17','#0053B3','#00ADB3','#FF8A24'] },
-  { id: 'terminal', name: 'Terminal Black', description: 'Focused market workspace', colors: ['#030507','#15191F','#29C7A5','#F5A623'] },
-  { id: 'aurora', name: 'Aurora Slate', description: 'Calm blue-green depth', colors: ['#071515','#12383A','#39C6B3','#A5B4FC'] },
-  { id: 'polar', name: 'Polar Desk', description: 'Crisp professional light', colors: ['#F3F7FC','#FFFFFF','#0053B3','#00ADB3'] },
-  { id: 'sandstone', name: 'Sandstone Focus', description: 'Warm, low-distraction light', colors: ['#F5F0E8','#FFFCF7','#00106E','#D66B18'] },
+  { id: 'midnight', name: 'Trading Dark', description: 'Balanced dark chart workspace', colors: ['#131722','#2962FF','#089981','#FF9800'] },
+  { id: 'terminal', name: 'OLED Terminal', description: 'Pure black with high-signal colors', colors: ['#000000','#2962FF','#00ADB3','#F23645'] },
+  { id: 'aurora', name: 'Deep Blue', description: 'Focused navy using the SJD palette', colors: ['#071426','#0053B3','#00ADB3','#FF9800'] },
+  { id: 'polar', name: 'Trading Light', description: 'Clean white chart surfaces', colors: ['#FFFFFF','#2962FF','#089981','#F23645'] },
+  { id: 'sandstone', name: 'Warm Paper', description: 'Low-glare notes and planning', colors: ['#F7F4EF','#0053B3','#00ADB3','#E57A00'] },
 ];
 
 export default function SettingsPage() {

@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Bell, BookMarked, BookOpenText, CalendarDays, CheckSquare2, CircleHelp, Command, LayoutDashboard, Menu, PanelTop, Search, Settings, WalletCards, X } from 'lucide-react';
+import { Bell, BookMarked, BookOpenText, CalendarDays, CheckSquare2, CircleHelp, Command, LayoutDashboard, Menu, PanelTop, Search, Settings, SlidersHorizontal, Star, WalletCards, X } from 'lucide-react';
 import { useState } from 'react';
 import { useStore } from '@/lib/store';
 
@@ -42,6 +42,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main>{children}</main>
       <footer className="terminal-statusbar"><span><i/> SYSTEM ONLINE</span><span>LOCAL-FIRST</span><span>UTC+03:30</span><span>SJD · PERSONAL WORKSPACE</span></footer>
     </section>
+    <aside className="widget-dock" aria-label="Workspace tools"><Link href="/portfolio" title="Watchlist"><Star size={18}/></Link><Link href="/life" title="Alerts"><Bell size={18}/></Link><Link href="/calendar" title="Calendar"><CalendarDays size={18}/></Link><Link href="/resources" title="Resources"><BookMarked size={18}/></Link><span/><Link href="/settings" title="Workspace settings"><SlidersHorizontal size={18}/></Link></aside>
     {mobileOpen && <button className="scrim" aria-label="Close navigation" onClick={() => setMobileOpen(false)}/>}
     <nav className="mobile-nav">{nav.filter(item => ['/', '/portfolio', '/life', '/mentor', '/resources'].includes(item.href)).map(({ href, label, icon: Icon }) => <Link href={href} key={href} className={pathname === href ? 'active' : ''}><Icon size={20}/><span>{label.split(' ')[0]}</span></Link>)}</nav>
   </div>;
