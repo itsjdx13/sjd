@@ -1,0 +1,2 @@
+# Keep protected runtime hashes reproducible across Windows and Linux clones.
+* -text
