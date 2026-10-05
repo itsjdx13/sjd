@@ -24,6 +24,10 @@ test("production app has a valid install manifest and reopens routes offline",as
   await expect(page.getByRole("heading",{name:"صبح بخیر، سارا",exact:true})).toBeVisible();
   await page.goto("/requests");
   await expect(page.locator("#main-content").getByRole("heading",{name:"درخواست‌ها",exact:true})).toBeVisible();
+  await page.goto("/hr");
+  await expect(page.getByRole("heading",{name:"عملیات منابع انسانی",exact:true})).toBeVisible();
+  await page.getByRole("button",{name:"پرونده کارکنان",exact:true}).click();
+  await expect(page.locator(".employee-directory")).toContainText("سارا احمدی");
   // A lazy-loaded screen also has its chunk precached.
   await page.goto("/design-system");
   await expect(page.getByRole("heading",{name:"راهنمای رابط روکو گایز",exact:true})).toBeVisible();
@@ -40,5 +44,5 @@ test("production app has a valid install manifest and reopens routes offline",as
   expect(exported.worksheets[0].rowCount).toBeGreaterThan(1);
   const cached=await page.evaluate(async()=>{const key=(await caches.keys()).find(k=>k.startsWith("roco-shell-"))!;return (await (await caches.open(key)).keys()).map(r=>new URL(r.url).pathname);});
   expect(cached.some(path=>path.includes("api")||path.includes("roco-session"))).toBe(false);
-  console.log("PWA: offline dashboard, requests, lazy reference and Excel import/export passed");
+  console.log("PWA: offline dashboard, requests, shared HR records, lazy reference and Excel import/export passed");
 });

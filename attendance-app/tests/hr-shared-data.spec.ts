@@ -29,8 +29,10 @@ test("HR file directory and balances use the shared employee list, including new
   await expect(balances.locator(".balance-row", { hasText: "کارمند تازه" })).toContainText("ثبت نشده");
   await expect(balances).toContainText("نمونه");
   // Display formatting only: the stored balance stays a number.
-  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("roco-hr-v1") ?? "null")?.profiles?.["RG-1042"]?.balanceBase);
-  if (stored !== undefined) expect(stored).toBe(12.5);
+  await page.evaluate(async () => { const { hrStore } = await import("/src/features/hr.ts"); hrStore.setPersisted(hrStore.getPersisted()); });
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("roco-hr-v1")!).profiles["RG-1042"].balanceBase);
+  expect(typeof stored).toBe("number");
+  expect(stored).toBe(12.5);
   expect(await page.evaluate(async () => { const { hrStore, leaveBalanceOf } = await import("/src/features/hr.ts"); return leaveBalanceOf(hrStore.get(), "RG-1042"); })).toBe(12.5);
 });
 
@@ -78,4 +80,36 @@ test("an employee edited in the real admin screen appears in HR after reload, wi
   await expect(page.locator(".employee-directory")).not.toContainText("سارا احمدی");
   await page.getByRole("button", { name: "برنامه شیفت", exact: true }).click();
   await expect(page.getByLabel("شیفت سارا ادمین‌ویرایش 13", { exact: true })).toBeVisible();
+});
+
+test("an employee storage warning arriving in another tab does not crash HR", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await page.goto("/hr");
+  await page.evaluate(key => {
+    localStorage.setItem(key, "broken-employees");
+    window.dispatchEvent(new StorageEvent("storage", { key, newValue: "broken-employees" }));
+  }, KEY);
+  await expect(page.getByRole("alert").filter({ hasText: "قابل خواندن نیست" })).toBeVisible();
+  await page.getByRole("button", { name: "پرونده کارکنان", exact: true }).click();
+  await expect(page.locator(".employee-directory")).toBeVisible();
+  expect(errors).toEqual([]);
+  expect(await page.evaluate(key => localStorage.getItem(key), KEY)).toBe("broken-employees");
+});
+
+test("malformed roster employee codes are preserved and block editing instead of crashing HR", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(error.message));
+  for (const codes of ["RG-1042", ["RG-1042"], ["RG-1042", "RG-1048", "RG-1051", "RG-1060", "RG-9001"], ["RG-1042", "RG-1042", "RG-1051", "RG-1060"], [null, "RG-1048", "RG-1051", "RG-1060"]]) {
+    await page.goto("/hr");
+    const raw = JSON.stringify({ version: 1, publishedAt: null, codes, cells: Array.from({ length: 4 }, () => Array(5).fill("morning")) });
+    await page.evaluate(raw => localStorage.setItem("roco-roster-2026-10-03-v1", raw), raw);
+    await page.reload();
+    await page.getByRole("button", { name: "برنامه شیفت", exact: true }).click();
+    await expect(page.getByRole("alert").filter({ hasText: "برنامه ذخیره‌شده قابل خواندن نیست" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "انتشار برنامه", exact: true })).toBeDisabled();
+    for (const control of await page.locator(".roster-grid select").all()) await expect(control).toBeDisabled();
+    expect(await page.evaluate(() => localStorage.getItem("roco-roster-2026-10-03-v1"))).toBe(raw);
+  }
+  expect(errors).toEqual([]);
 });

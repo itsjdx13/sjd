@@ -15,7 +15,9 @@ export default function HrOperationsPage() {
   const [tab,setTab]=useState<HrTab>("overview");
   const employees=employeeStore.use();
   const hrData=hrStore.use();
-  const storageProblem=employeeStore.useProblem()||hrStore.useProblem();
+  const employeeProblem=employeeStore.useProblem();
+  const hrProblem=hrStore.useProblem();
+  const storageProblem=employeeProblem||hrProblem;
   const [personCode,setPersonCode]=useState("");
   const hrPeople=employees.map(e=>{const p=profileOf(hrData,e.code),balance=leaveBalanceOf(hrData,e.code);return {...e,role:p.role??NOT_RECORDED,contract:p.contract??NOT_RECORDED,skill:p.skill??NOT_RECORDED,document:p.document??NOT_RECORDED,balance:balance===undefined?NOT_RECORDED:`${fa(balance)} روز`,statusText:employeeStatusLabel[e.status]}});
   const selected=hrPeople.find(p=>p.code===personCode)??hrPeople[0];

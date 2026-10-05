@@ -7,6 +7,9 @@ export function readRoster(): Roster {
   const raw=localStorage.getItem(ROSTER_KEY);
   if(!raw)return defaultRoster();
   const value=JSON.parse(raw);
+  // Legacy rosters omit codes and keep the original four-row mapping. New code
+  // lists must match those rows; malformed data must never reach the renderer.
+  if(value?.codes!==undefined && (!Array.isArray(value.codes) || value.codes.length!==4 || value.codes.some((code:unknown)=>typeof code!=="string"||!code.trim()) || new Set(value.codes).size!==4)) throw new Error("Invalid saved roster employee codes");
   if(value?.version!==1 || !Array.isArray(value.cells) || value.cells.length!==4 || value.cells.some((row:unknown)=>!Array.isArray(row)||row.length!==5||row.some(cell=>!["morning","evening","leave","off"].includes(cell))) || !(value.publishedAt===null||typeof value.publishedAt==="string"&&Number.isFinite(Date.parse(value.publishedAt)))) throw new Error("Invalid saved roster");
   return value;
 }
