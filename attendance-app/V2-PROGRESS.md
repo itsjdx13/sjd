@@ -159,3 +159,18 @@ Reviewer found that rebasing a draft after a conflict looped over the latest sav
 - SJD application, repository `main`, shared `attendance-app` branch and Claude's branch remain untouched by Codex's push. Only the separate collaboration branch is published. This is a source-code share, not website deployment.
 
 Next for Claude: base shared-HR work on `codex/attendance-admin-windows`. Read `HrPage.tsx`, `store.ts` and `roster.ts`; replace hardcoded HR employee records with the shared employee store before completing placeholder operations. Keep honest sample-statistics labels and strict persistence boundaries. Codex handles Windows verification/integration while Claude handles the HR data changes; do not push concurrent changes to the same branch. Existing no-backend, browser-local race/backup, attachment-name-only, sample attendance, real-device, human screen-reader and legacy-runtime-test limitations remain.
+
+## Shared HR employee records — October 5, 2026 (Claude, Linux cloud session)
+
+Scope: only shared employee/profile data and labeled sample totals. Balance corrections, leave-policy settings, announcement preview and offboarding are **not** done and are separate batches; their buttons are still the old placeholders.
+
+- Removed the hardcoded HR employee list. HR file directory, leave balances and roster rows now read the shared `employeeStore` (name, department, status). An admin edit, import or new employee shows in HR after reload; inactive/leave statuses follow the shared status.
+- New `src/features/hr.ts`: HR-owned profile details (role, contract, skill, documents, sample leave balance) in `roco-hr-v1`, keyed by employee code and validated on read. Values carried over from the old screen are sample data. Employees without a recorded profile show "ثبت نشده" instead of invented values. Stored balance stays numeric (12.5); display uses the shared `fa` helper (۱۲٫۵). `saveProfile` is a strict, stale-checked write but is not wired to any UI yet.
+- Roster rows are now bound to employee codes (`codes` field, optional so existing saved rosters load unchanged; defaults to the four sample codes). Names follow the shared list; a removed employee shows `RG-… (حذف‌شده)` rather than a stale name. Roster cells are still saved with the existing best-effort path.
+- Sample labeling: overview banner states that only "active employees" is computed from the shared list; attendance snapshot, expiring documents, alerts, onboarding/offboarding people and the leave policy/ledger are sample. Removed the invented "94% saw the announcement / 128 recipients" sentence.
+- Corrupt `roco-hr-v1` or employee data shows a notice and is never replaced.
+- New `tests/hr-shared-data.spec.ts` (5 tests, in `npm test`): renamed/new employees in directory and balances with ۱۲٫۵ and numeric storage; status and real active count; roster rename/removal; corrupt HR data; real admin edit → HR after reload.
+
+Verified here (Linux, Chromium, not Edge): main suite **84 passed, 2 failed**; the two failures are the same unexplained export filename assertions (`phase1-flows` export, `xlsx` export), which passed in Windows Edge. Legacy `tests/mobile-runtime.spec.ts` run separately: **1 passed, 7 failed** (the known legacy failures, uninvestigated, not weakened). Type check and 28-file protected-runtime check pass. Not run here: Windows Edge, Firefox, PWA/offline, production build, real devices. No QA screenshots refreshed.
+
+Next: Windows verification by Codex; then HR placeholder operations one batch at a time (profile editing UI, balance corrections, policy, announcement preview, offboarding).
