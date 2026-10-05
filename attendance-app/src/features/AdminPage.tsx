@@ -6,6 +6,8 @@ import { addEmployee, departments, employeeStatusLabel, employeeStore, patchEmpl
 import { EmptyState, Sheet, Tabs, panelProps, fa, useMedia } from "./ui";
 
 const PAGE_SIZE = 5;
+// Every editable field is merged explicitly, so a field absent from the saved record (e.g. no email yet) is never dropped.
+const editableFields: (keyof Employee)[] = ["code", "name", "department", "status", "email", "shift"];
 const statusBadge = (s: Employee["status"]) => s === "active" ? <span className="ds-badge ds-tone-success">{employeeStatusLabel[s]}</span> : s === "leave" ? <span className="ds-badge ds-tone-warning">{employeeStatusLabel[s]}</span> : <span className="ds-badge ds-tone-neutral">{employeeStatusLabel[s]}</span>;
 const exportRows = (list: Employee[]) => toCsv([["کد پرسنلی", "نام", "واحد", "وضعیت", "ایمیل", "شیفت"], ...list.map(e => [e.code, e.name, e.department, employeeStatusLabel[e.status], e.email ?? "", e.shift])]);
 
@@ -25,7 +27,7 @@ function EmployeeForm({ initial, onSave, onCancel, existing }: { initial?: Emplo
       if (initial && baseline.current && error instanceof PersistenceFailure && error.kind === "conflict") {
         const latest = employeeStore.get().find(x => x.code === initial.code), old = baseline.current;
         if (latest) { // Keep only the fields this user changed; everything else follows the latest saved record.
-          setV(cur => Object.fromEntries((Object.keys(latest) as (keyof Employee)[]).map(k => [k, cur[k] !== old[k] ? cur[k] : latest[k]])) as Employee);
+          setV(cur => Object.fromEntries(editableFields.map(k => [k, cur[k] !== old[k] ? cur[k] : latest[k]]).filter(([, value]) => value !== undefined)) as Employee);
           baseline.current = latest;
         }
       }
