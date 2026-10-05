@@ -180,3 +180,26 @@ test("bulk change refuses rows edited elsewhere and corrupt data is never replac
   await expect(page.getByRole("alert").filter({ hasText: "قابل خواندن نیست" }).first()).toBeVisible();
   expect(await saved(page)).toBe("broken-employees");
 });
+
+test("conflict recovery keeps a typed email when the saved record has none", async ({ page }) => {
+  await openAdmin(page);
+  await page.evaluate(key => {
+    const list = JSON.parse(localStorage.getItem(key)!);
+    localStorage.setItem(key, JSON.stringify(list.map((e: { code: string; email?: string }) => { if (e.code !== "RG-1042") return e; const { email: _email, ...rest } = e; return rest; })));
+  }, KEY);
+  await page.reload();
+  await startEdit(page);
+  await expect(page.getByLabel("ایمیل")).toHaveValue("");
+  await page.getByLabel("ایمیل").fill("sara.new@rocoguys.ir");
+  await page.evaluate(key => { // unrelated change from another tab
+    const list = JSON.parse(localStorage.getItem(key)!);
+    localStorage.setItem(key, JSON.stringify(list.map((e: { code: string }) => e.code === "RG-1042" ? { ...e, shift: "شب" } : e)));
+  }, KEY);
+  await page.getByRole("button", { name: "ذخیره تغییرها" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "تغییر کرده" })).toBeVisible();
+  await expect(page.getByLabel("ایمیل")).toHaveValue("sara.new@rocoguys.ir");
+  await expect(page.getByLabel("شیفت")).toHaveValue("شب");
+  await page.getByRole("button", { name: "تلاش دوباره برای ذخیره" }).click();
+  await expect(page.locator(".sr-live")).toContainText("ذخیره شد");
+  expect((await savedList(page)).find(e => e.code === "RG-1042")).toMatchObject({ email: "sara.new@rocoguys.ir", shift: "شب" });
+});
