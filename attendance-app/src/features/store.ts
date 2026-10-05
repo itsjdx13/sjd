@@ -194,9 +194,29 @@ const seedEmployees = (): Employee[] => {
   ];
   return base;
 };
-const isEmployeeList = (v: unknown): v is Employee[] => Array.isArray(v) && v.every(e => e && typeof e.code === "string" && typeof e.name === "string" && typeof e.department === "string" && ["active", "leave", "inactive"].includes(e.status) && typeof e.shift === "string");
+const isEmployeeList = (v: unknown): v is Employee[] => Array.isArray(v) && v.every(e => e && typeof e.code === "string" && typeof e.name === "string" && typeof e.department === "string" && ["active", "leave", "inactive"].includes(e.status) && typeof e.shift === "string" && (e.email === undefined || typeof e.email === "string"));
 export const employeeStore = createStore<Employee[]>("roco-employees-v1", seedEmployees, isEmployeeList);
 export const departments = ["محصول", "عملیات", "مالی", "فروش", "منابع انسانی"];
+
+/* Strict administrative employee writes: reread the saved list, reject stale edits, confirm by read-back. */
+const sameEmployee = (a: Employee | undefined, b: Employee | undefined) => JSON.stringify(a) === JSON.stringify(b);
+const employeeConflict = () => new PersistenceFailure("conflict", "پرونده در این فاصله تغییر کرده است؛ وضعیت تازه نمایش داده شد. تغییر شما ذخیره نشد، آن را بررسی و دوباره اعمال کنید.");
+export function addEmployee(employee: Employee) {
+  const list = employeeStore.refreshPersisted();
+  if (list.some(e => e.code === employee.code)) throw new PersistenceFailure("conflict", "این کد پرسنلی هم‌اکنون استفاده شده است؛ کد را تغییر دهید.");
+  employeeStore.setPersisted([...list, employee]);
+}
+export function updateEmployee(employee: Employee, expected: Employee) {
+  const list = employeeStore.refreshPersisted();
+  if (!sameEmployee(list.find(e => e.code === employee.code), expected)) throw employeeConflict();
+  employeeStore.setPersisted(list.map(e => e.code === employee.code ? employee : e));
+}
+export function patchEmployees(expected: Employee[], change: Partial<Pick<Employee, "department" | "shift" | "status">>) {
+  const list = employeeStore.refreshPersisted();
+  if (expected.some(old => !sameEmployee(list.find(e => e.code === old.code), old))) throw employeeConflict();
+  const codes = new Set(expected.map(e => e.code));
+  employeeStore.setPersisted(list.map(e => codes.has(e.code) ? { ...e, ...change } : e));
+}
 
 /* ---------- export history ---------- */
 export type ExportRecord = { id: string; name: string; createdAt: string; rows: number; format: "csv" | "json" | "xlsx"; content: string; encoding?: "base64"; filters?: {employeeCodes:string[];departments:string[];from:string;to:string} };

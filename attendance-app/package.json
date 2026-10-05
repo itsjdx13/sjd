@@ -7,7 +7,7 @@
     "check:runtime": "node scripts/check-mobile-runtime.mjs",
     "update:runtime-lock": "node scripts/update-mobile-runtime-lock.mjs",
     "test:runtime": "playwright test tests/responsive-app.spec.ts",
-    "test": "playwright test tests/responsive-app.spec.ts tests/design-foundation.spec.ts tests/phase1-flows.spec.ts tests/continuation.spec.ts tests/export-selection.spec.ts tests/xlsx.spec.ts tests/accessibility-workflows.spec.ts tests/storage-reliability.spec.ts tests/request-persistence.spec.ts",
+    "test": "playwright test tests/responsive-app.spec.ts tests/design-foundation.spec.ts tests/phase1-flows.spec.ts tests/continuation.spec.ts tests/export-selection.spec.ts tests/xlsx.spec.ts tests/accessibility-workflows.spec.ts tests/storage-reliability.spec.ts tests/request-persistence.spec.ts tests/admin-persistence.spec.ts",
     "test:pwa": "npm run build && playwright test -c playwright.pwa.config.ts",
     "setup:firefox": "node scripts/test-firefox.mjs --install",
     "test:firefox": "node scripts/test-firefox.mjs",

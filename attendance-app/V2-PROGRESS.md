@@ -135,3 +135,13 @@ Claude reviewed the brief, not this checkout, and did not independently verify t
 - Inspected mobile retry screenshot `qa/phase1/request-save-retry-mobile.png`: preserved fields and readable retry action, no horizontal overflow. Preview remains `http://127.0.0.1:4175/requests`.
 
 Next: strict saving for administrative employee add/edit/bulk changes with failure/conflict/retry tests. Then unify HR employee data before implementing its placeholder actions. Admin legacy saves and some other demo state still use best-effort persistence. Human screen-reader/phone checks, legacy phone-runtime failures and all backend/security/sample-history limitations remain. No public deployment, paid service, repository upload or real-device verification was performed.
+
+## Strict administrative employee saves — October 5, 2026 (Claude, Linux cloud session)
+
+- Added `addEmployee`, `updateEmployee` and `patchEmployees` in `src/features/store.ts`. Each rereads the saved list, rejects stale or duplicate-code changes with a `conflict` failure, and saves through the confirmed read-back path. Employee shape validation now also checks `email`.
+- `AdminPage`: add/edit forms keep the typed values on failure, show an alert and offer "تلاش دوباره برای ذخیره"; success is announced only after a confirmed save. After a conflict the draft is rebased: only fields the user changed are kept, everything else follows the latest saved record, and the user must save again deliberately. Bulk department/shift changes show their error inside the bulk bar, keep the selection and refuse rows edited elsewhere. A corrupt saved list shows a page-level notice and is never overwritten.
+- Five new tests in `tests/admin-persistence.spec.ts` (added to `npm test`): edit quota failure + retry + reload; stale edit from another tab; add with quota failure and a code taken elsewhere; bulk failure + retry; bulk stale rows and corrupt data.
+
+Verified in this session (Linux, project-local setup, Chromium instead of Microsoft Edge): the five new tests pass; the full main suite gave 76 of 78 passed. The two failures (`phase1-flows` export download and `xlsx` export download) report the download filename as "download" instead of the expected name. They fail identically on the code before this change, so they come from running Chromium on Linux rather than Edge on Windows. Not investigated further, not weakened. Build, type check and the 28-file protected-runtime check pass. Firefox, PWA/offline and real-device checks were not run here. No screenshots were refreshed.
+
+Remaining: unify HR with the shared employee records, then the HR placeholder operations; admin edits no longer use best-effort saving, but other legacy `set` callers remain.
