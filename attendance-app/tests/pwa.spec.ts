@@ -1,0 +1,44 @@
+import {expect,test} from "@playwright/test";
+import ExcelJS from "exceljs";
+import {readFile} from "node:fs/promises";
+test("production app has a valid install manifest and reopens routes offline",async({page,context})=>{
+  page.on("console",message=>console.log("PWA browser:",message.text()));
+  await page.addInitScript(()=>{if(!localStorage.getItem("roco-session-v1"))localStorage.setItem("roco-role","admin");});
+  await page.goto("/dashboard");
+  const manifest=await (await page.request.get("/manifest.webmanifest")).json();
+  console.log("PWA: manifest loaded");
+  expect(manifest.display).toBe("standalone");expect(manifest.lang).toBe("fa");
+  for(const icon of manifest.icons) {
+    const response=await page.request.get(icon.src);expect(response.ok()).toBe(true);
+    const buffer=await response.body();
+    expect(buffer.readUInt32BE(16)).toBe(Number(icon.sizes.split("x")[0]));
+  }
+  await page.evaluate(async()=>{await navigator.serviceWorker.ready;if(!navigator.serviceWorker.controller)await new Promise<void>(resolve=>navigator.serviceWorker.addEventListener("controllerchange",()=>resolve(),{once:true}));});
+  console.log("PWA: worker active");
+  const cdp=await context.newCDPSession(page);
+  const result=await cdp.send("Page.getAppManifest");
+  expect(result.errors).toEqual([]);
+  console.log("PWA: browser manifest validation passed");
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.getByRole("heading",{name:"صبح بخیر، سارا",exact:true})).toBeVisible();
+  await page.goto("/requests");
+  await expect(page.locator("#main-content").getByRole("heading",{name:"درخواست‌ها",exact:true})).toBeVisible();
+  // A lazy-loaded screen also has its chunk precached.
+  await page.goto("/design-system");
+  await expect(page.getByRole("heading",{name:"راهنمای رابط روکو گایز",exact:true})).toBeVisible();
+  // Excel's lazy chunk must work without an earlier online import/export.
+  await page.goto("/admin/import-export");
+  const workbook=new ExcelJS.Workbook();
+  workbook.addWorksheet("کارکنان").addRows([["کد پرسنلی","نام","واحد"],["RG-9001","کارمند نمونه","محصول"]]);
+  await page.locator("input[type=file]").setInputFiles({name:"offline.xlsx",mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",buffer:Buffer.from(await workbook.xlsx.writeBuffer())});
+  await expect(page.getByRole("heading",{name:"تطبیق ستون‌ها",exact:true})).toBeVisible();
+  await page.getByRole("combobox",{name:/قالب فایل/}).selectOption("xlsx");
+  const pending=page.waitForEvent("download");
+  await page.getByRole("button",{name:"ساخت و دانلود فایل",exact:true}).click();
+  const exported=new ExcelJS.Workbook();await exported.xlsx.load(await readFile((await (await pending).path())!));
+  expect(exported.worksheets[0].rowCount).toBeGreaterThan(1);
+  const cached=await page.evaluate(async()=>{const key=(await caches.keys()).find(k=>k.startsWith("roco-shell-"))!;return (await (await caches.open(key)).keys()).map(r=>new URL(r.url).pathname);});
+  expect(cached.some(path=>path.includes("api")||path.includes("roco-session"))).toBe(false);
+  console.log("PWA: offline dashboard, requests, lazy reference and Excel import/export passed");
+});

@@ -1,0 +1,12 @@
+import { spawn } from "node:child_process";
+import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+const require=createRequire(import.meta.url);
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
+const cli=require.resolve("@playwright/test/cli");
+const install=process.argv.includes("--install");
+const args=install?["install","firefox"]:["test","-c","playwright.cross-browser.config.ts","--project=firefox-desktop","--workers=1",...process.argv.slice(2)];
+const child=spawn(process.execPath,[cli,...args],{cwd:root,stdio:"inherit",env:{...process.env,PLAYWRIGHT_BROWSERS_PATH:path.join(root,".cache","playwright")}});
+child.on("error",error=>{console.error(error.message);process.exitCode=1;});
+child.on("exit",code=>{process.exitCode=code??1;});

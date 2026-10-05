@@ -1,0 +1,12 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+.cache/
+test-results-pwa/
+test-results-*/
+.env
+.env.*
+!.env.example
+*.log
+*.tsbuildinfo
