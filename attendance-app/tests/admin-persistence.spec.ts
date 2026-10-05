@@ -68,6 +68,58 @@ test("an edit made in another tab is not overwritten by a stale form", async ({ 
   expect((await savedList(page)).find(e => e.code === "RG-1042")).toMatchObject({ name: "نام تازه", shift: "شب" });
 });
 
+test("conflict retry preserves a newly added optional email", async ({ page }) => {
+  await openAdmin(page);
+  await page.evaluate(key => {
+    const list = JSON.parse(localStorage.getItem(key)!);
+    const employee = list.find((e: { code: string }) => e.code === "RG-1042");
+    delete employee.email;
+    localStorage.setItem(key, JSON.stringify(list));
+  }, KEY);
+  await page.reload();
+  await startEdit(page);
+  await page.getByLabel("ایمیل", { exact: true }).fill("new@example.com");
+  await page.evaluate(key => {
+    const list = JSON.parse(localStorage.getItem(key)!);
+    localStorage.setItem(key, JSON.stringify(list.map((e: { code: string }) => e.code === "RG-1042" ? { ...e, shift: "شب" } : e)));
+  }, KEY);
+  await page.getByRole("button", { name: "ذخیره تغییرها" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "تغییر کرده" })).toBeVisible();
+  await expect(page.getByLabel("ایمیل", { exact: true })).toHaveValue("new@example.com");
+  await expect(page.getByLabel("شیفت")).toHaveValue("شب");
+  await page.getByRole("button", { name: "تلاش دوباره برای ذخیره" }).click();
+  await expect(page.locator(".sr-live")).toContainText("ذخیره شد");
+  await page.reload();
+  expect(await page.evaluate(key => JSON.parse(localStorage.getItem(key)!).find((e: { code: string }) => e.code === "RG-1042"), KEY)).toMatchObject({ email: "new@example.com", shift: "شب" });
+});
+
+test("conflict retry respects removal of an untouched optional email", async ({ page }) => {
+  await openAdmin(page);
+  await page.evaluate(key => {
+    const list = JSON.parse(localStorage.getItem(key)!);
+    list.find((e: { code: string }) => e.code === "RG-1042").email = "old@example.com";
+    localStorage.setItem(key, JSON.stringify(list));
+  }, KEY);
+  await page.reload();
+  await startEdit(page);
+  await page.getByLabel("نام و نام خانوادگی").fill("نام تازه");
+  await page.evaluate(key => {
+    const list = JSON.parse(localStorage.getItem(key)!);
+    const employee = list.find((e: { code: string }) => e.code === "RG-1042");
+    delete employee.email;
+    localStorage.setItem(key, JSON.stringify(list));
+  }, KEY);
+  await page.getByRole("button", { name: "ذخیره تغییرها" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "تغییر کرده" })).toBeVisible();
+  await expect(page.getByLabel("ایمیل", { exact: true })).toHaveValue("");
+  await page.getByRole("button", { name: "تلاش دوباره برای ذخیره" }).click();
+  await expect(page.locator(".sr-live")).toContainText("ذخیره شد");
+  await page.reload();
+  const employee = await page.evaluate(key => JSON.parse(localStorage.getItem(key)!).find((e: { code: string }) => e.code === "RG-1042"), KEY);
+  expect(employee.name).toBe("نام تازه");
+  expect(employee.email).toBeUndefined();
+});
+
 test("adding an employee fails safely on quota and on a code taken elsewhere", async ({ page }) => {
   await openAdmin(page);
   const before = await saved(page);
