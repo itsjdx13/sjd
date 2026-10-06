@@ -1,7 +1,7 @@
 import { jalaliToISO, normalizeDigits, validTime } from "../design/locale";
 import { organizationPolicy } from "../design/policy";
 import { workplaceDateISO, shift } from "./ledger";
-import { LEAVE_BALANCE_DAYS, dayCount, findOverlaps, type RequestType, type RoRequest } from "./store";
+import { dayCount, findOverlaps, type RequestType, type RoRequest } from "./store";
 
 export type Draft = {
   type: RequestType; startDate: string; endDate: string; startTime: string; endTime: string;
@@ -26,9 +26,9 @@ export const norm = (t: string) => normalizeDigits(t);
 export type Checked = {
   errors: Partial<Record<keyof Draft | "balance", string>>;
   iso: { start: string | null; end: string | null };
-  days: number; paidDays: number; overlapping: RoRequest[]; balanceAfter: number;
+  days: number; paidDays: number; overlapping: RoRequest[]; balanceAfter: number | undefined;
 };
-export function checkDraft(d: Draft, existing: RoRequest[], pendingDays: number, replacingId?: string): Checked {
+export function checkDraft(d: Draft, existing: RoRequest[], pendingDays: number, replacingId?: string, available?: number): Checked {
   const errors: Checked["errors"] = {};
   const today = workplaceDateISO();
   const need = requiredFields[d.type];
@@ -66,8 +66,9 @@ export function checkDraft(d: Draft, existing: RoRequest[], pendingDays: number,
   const days = d.type === "dailyLeave" && start && end && end >= start ? dayCount(start, end, organizationPolicy.weekendDays) : 0;
   if (d.type === "dailyLeave" && start && end && end >= start && days === 0) errors.endDate = "بازه انتخابی فقط شامل تعطیل هفتگی است.";
   const paidDays = d.type === "dailyLeave" && d.leaveKind === "paid" ? days : 0;
-  const balanceAfter = LEAVE_BALANCE_DAYS - pendingDays - paidDays;
-  if (balanceAfter < 0) errors.balance = "مانده مرخصی کافی نیست. نوع مرخصی را «بدون حقوق» انتخاب یا بازه را کوتاه‌تر کنید.";
+  const balanceAfter = available === undefined ? undefined : available - pendingDays - paidDays;
+  if (paidDays > 0 && available === undefined) errors.balance = "مانده مرخصی ثبت نشده یا قابل خواندن نیست؛ برای ثبت مانده با منابع انسانی هماهنگ کنید یا مرخصی بدون حقوق را انتخاب کنید.";
+  else if (paidDays > 0 && balanceAfter !== undefined && balanceAfter < 0) errors.balance = "مانده مرخصی کافی نیست. نوع مرخصی را «بدون حقوق» انتخاب یا بازه را کوتاه‌تر کنید.";
 
   const overlapping = start && end && !errors.startDate && !errors.endDate
     ? findOverlaps({ type: d.type, startDate: start, endDate: end, startTime: timed ? norm(d.startTime) : undefined, endTime: need.includes("endTime") ? norm(d.endTime) : undefined }, existing, replacingId) : [];

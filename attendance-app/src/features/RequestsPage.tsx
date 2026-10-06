@@ -8,6 +8,7 @@ import { safeLedger, workplaceDateISO } from "./ledger";
 import { recordFor, addDays } from "./attendance";
 import { EmptyState, Sheet, dateTimeLabel, dayMonth, fa, longDate } from "./ui";
 import { PersistenceFailure, persistenceMessage } from "./persistence";
+import { useLeaveRevision } from "./leave";
 
 export const historyLabel: Record<HistoryEntry["action"], string> = { submitted: "ارسال شد", resubmitted: "ویرایش و دوباره ارسال شد", approved: "تأیید شد", rejected: "رد شد", returned: "برای ویرایش برگشت خورد" };
 export const requestTypes = Object.keys(requestTypeLabels) as RequestType[];
@@ -45,8 +46,9 @@ function RequestForm({ initial, replacing, onDone, onCancel }: { initial: Draft;
   const submissionKey = useRef(crypto.randomUUID());
   const attemptedDraft = useRef<string | null>(null);
   const all = requestStore.use();
+  useLeaveRevision();
   const bal = leaveBalance(all.filter(r => r.id !== replacing?.id));
-  const checked = useMemo(() => checkDraft(d, all, bal.pendingDays, replacing?.id), [d, all, bal.pendingDays, replacing?.id]);
+  const checked = useMemo(() => checkDraft(d, all, bal.pendingDays, replacing?.id, bal.available), [d, all, bal.pendingDays, bal.available, replacing?.id]);
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD(p => ({ ...p, [k]: v }));
   const need = requiredFields[d.type];
   const err = (k: keyof typeof checked.errors) => (touched ? checked.errors[k] : undefined);
@@ -81,7 +83,7 @@ function RequestForm({ initial, replacing, onDone, onCancel }: { initial: Draft;
       onDone(previouslySaved.id); return;
     }
     const latestBalance = leaveBalance(latest.filter(r => r.id !== replacing?.id));
-    const fresh = checkDraft(d, latest, latestBalance.pendingDays, replacing?.id);
+    const fresh = checkDraft(d, latest, latestBalance.pendingDays, replacing?.id, latestBalance.available);
     const newOverlap = fresh.overlapping.some(r => !checked.overlapping.some(previous => previous.id === r.id));
     if (Object.keys(fresh.errors).length || newOverlap || fresh.overlapping.length && !ack) {
       if (newOverlap) setAck(false);
@@ -124,7 +126,7 @@ function RequestForm({ initial, replacing, onDone, onCancel }: { initial: Draft;
       {d.attachments.length > 0 && <ul className="chip-list">{d.attachments.map(a => <li key={a}><bdi>{a}</bdi><button type="button" aria-label={`حذف پیوست ${a}`} onClick={() => set("attachments", d.attachments.filter(x => x !== a))}>×</button></li>)}</ul>}</div>
 
     {d.type === "dailyLeave" && <div className={`impact-box ${checked.errors.balance ? "bad" : ""}`}><strong>اثر بر مانده مرخصی</strong>
-      <span>{fa(bal.available)} روز مانده{bal.pendingDays ? ` − ${fa(bal.pendingDays)} روز در انتظار` : ""}{checked.paidDays ? ` − ${fa(checked.paidDays)} روز این درخواست` : ""} = <b>{fa(checked.balanceAfter)} روز</b></span>
+      <span>{bal.available === undefined ? "مانده ثبت نشده یا قابل خواندن نیست" : `${fa(bal.available)} روز مانده`}{bal.pendingDays ? ` − ${fa(bal.pendingDays)} روز در انتظار` : ""}{checked.paidDays ? ` − ${fa(checked.paidDays)} روز این درخواست` : ""} = <b>{checked.balanceAfter === undefined ? "ثبت نشده" : `${fa(checked.balanceAfter)} روز`}</b></span>
       {touched && checked.errors.balance && <small id={`${liveId}-balance-error`} className="ds-error" role="alert">{checked.errors.balance}</small>}{d.leaveKind === "unpaid" && <small>مرخصی بدون حقوق از مانده کسر نمی‌شود.</small>}</div>}
     {needsAck && <div className="state-banner warn" role="alert"><ExclamationTriangleIcon /><div><strong>هم‌پوشانی با درخواست دیگر</strong>
       <ul>{checked.overlapping.map(o => <li key={o.id}>{requestTypeLabels[o.type]} • {requestSummary(o)} • <Badge status={o.status} /></li>)}</ul>
@@ -142,6 +144,7 @@ const filters: Array<["all" | RequestStatus, string]> = [["all", "همه"], ["pe
 export default function RequestsPage() {
   const all = requestStore.use();
   const storageProblem = requestStore.useProblem();
+  useLeaveRevision();
   const mine = all.filter(r => r.employeeCode === CURRENT_USER.code);
   const [filter, setFilter] = useState<"all" | RequestStatus>("all");
   const [open, setOpen] = useState<null | { draft: Draft; replacing?: RoRequest }>(null);
@@ -169,9 +172,10 @@ export default function RequestsPage() {
       <button type="button" className="primary-button compact" onClick={openNew}><PlusIcon /> درخواست جدید</button></header>
     {notice && <div className="toast success" role="status"><CheckCircledIcon /> {notice}</div>}
     {storageProblem && <div className="state-banner bad" role="alert"><p>{storageProblem} فهرست نمایش‌داده‌شده ممکن است آخرین وضعیت نباشد؛ هیچ داده‌ای خودکار حذف یا بازیابی نشده است.</p></div>}
+    {bal.problem && <p className="ds-error" role="alert">{bal.problem}</p>}
     <div className="request-layout">
       <section className="card">
-        <div className="summary-cards two"><div><strong>{fa(bal.available)} روز</strong><span>مانده مرخصی</span></div><div><strong>{fa(mine.filter(r => r.status === "pending").length)} مورد</strong><span>در انتظار تأیید</span></div></div>
+        <div className="summary-cards two"><div><strong>{bal.available === undefined ? "ثبت نشده" : `${fa(bal.available)} روز`}</strong><span>مانده مرخصی</span></div><div><strong>{fa(mine.filter(r => r.status === "pending").length)} مورد</strong><span>در انتظار تأیید</span></div></div>
         <div className="card-heading"><h2>درخواست‌های من</h2></div>
         <div className="filter-chips" role="group" aria-label="فیلتر وضعیت">{filters.map(([k, label]) => <button type="button" key={k} aria-pressed={filter === k} className={filter === k ? "active" : ""} onClick={() => setFilter(k)}>
           {label} <small>{fa(k === "all" ? mine.length : mine.filter(r => r.status === k).length)}</small></button>)}</div>
@@ -179,7 +183,7 @@ export default function RequestsPage() {
           : <div className="request-list">{list.map(r => <button type="button" className="request-row" key={r.id} onClick={e => { trigger.current = e.currentTarget; setDetailId(r.id); }}>
             <span className="soft-icon"><FileTextIcon /></span><span><strong>{requestTypeLabels[r.type]}</strong><small>{requestSummary(r)}</small></span><Badge status={r.status} /><ChevronLeftIcon aria-hidden="true" /></button>)}</div>}
       </section>
-      <aside className="card balance-card"><span className="overline">مانده مرخصی شما</span><h2>پس از تأیید درخواست‌های جاری</h2><strong>{fa(bal.afterPending)} <small>روز</small></strong>
+      <aside className="card balance-card"><span className="overline">مانده مرخصی شما</span><h2>پس از تأیید درخواست‌های جاری</h2><strong>{bal.afterPending === undefined ? "ثبت نشده" : fa(bal.afterPending)} <small>{bal.afterPending === undefined ? "" : "روز"}</small></strong>
         <p>{bal.pendingDays ? `${fa(bal.pendingDays)} روز مرخصی با حقوق در انتظار تأیید است و در این عدد کسر شده است.` : "درخواست مرخصی در انتظار تأییدی ندارید."}</p></aside>
     </div>
     <Sheet open={!!open} onClose={() => setOpen(null)} title={open?.replacing ? "ویرایش درخواست" : "درخواست جدید"} eyebrow="فرم درخواست" triggerRef={trigger}>

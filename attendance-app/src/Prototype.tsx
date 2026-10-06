@@ -16,6 +16,7 @@ import { Brand, PageHeader } from "./features/common";
 import { monthPeriod, recordFor, totals, weekPeriod } from "./features/attendance";
 import { eventClock, safeLedger, shift, todayStatus, useLedgerVersion, workplaceDateISO } from "./features/ledger";
 import { CURRENT_USER, clearSession, decisionCounts, readSession, requestStore, requestTypeLabels, writeSession, leaveBalance, type SessionState } from "./features/store";
+import { useLeaveRevision } from "./features/leave";
 import { Sheet, Tabs, panelProps, fa, hhmm, longDate, useOnline } from "./features/ui";
 import { requestSummary } from "./features/RequestsPage";
 import AttendancePage from "./features/AttendancePage";
@@ -144,6 +145,7 @@ function Dashboard({ role, go }: { role: Role; go: (p: string) => void }) {
   const exceptions = monthPeriod(0).dates.concat(monthPeriod(-1).dates).filter(d => d < todayISO).map(d => recordFor(d, ledger, requests)).filter(r => ["late", "missingPunch", "correction"].includes(r.state)).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3);
   const mine = requests.filter(r => r.employeeCode === CURRENT_USER.code && (r.status === "pending" || r.status === "returned"));
   const queue = requests.filter(r => r.status === "pending" && r.employeeCode !== CURRENT_USER.code);
+  useLeaveRevision();
   const bal = leaveBalance(requests);
   const weekend = organizationPolicy.weekendDays.includes(new Date(todayISO + "T12:00:00Z").getUTCDay());
   const action = today.last ? (today.last.action === "in" ? "out" : "in") : "in";
@@ -170,7 +172,8 @@ function Dashboard({ role, go }: { role: Role; go: (p: string) => void }) {
           <span className={`soft-icon ${r.state === "late" ? "danger" : "warning"}`}>{r.state === "late" ? <ClockIcon /> : <ExclamationTriangleIcon />}</span><span><strong>{r.state === "late" ? `${fa(r.lateMin)} دقیقه تأخیر` : r.state === "correction" ? "اصلاح حضور نیازمند ویرایش" : "ثبت خروج فراموش‌شده"}</strong><small>{longDate(r.date).replace(/ [۰-۹]{4}$/, "")}</small></span><ChevronLeftIcon aria-hidden="true" /></button>)}</section>
       <section className="card list-card"><div className="card-heading"><h2>درخواست‌های من</h2><button type="button" className="link-button" onClick={() => go("/requests")}>مشاهده همه</button></div>
         {mine.length === 0 ? <p className="muted-text">درخواست بازی ندارید.</p> : mine.slice(0, 3).map(r => <button type="button" key={r.id} className="list-row" onClick={() => go("/requests")}><span className="soft-icon"><FileTextIcon /></span><span><strong>{requestTypeLabels[r.type]}</strong><small>{requestSummary(r)}</small></span><Badge status={r.status} /></button>)}
-        <p className="muted-text small">مانده مرخصی: {fa(bal.afterPending)} روز</p>
+        <p className="muted-text small">مانده مرخصی پس از رزرو درخواست‌ها: {bal.afterPending === undefined ? "ثبت نشده یا قابل خواندن نیست" : `${fa(bal.afterPending)} روز`}</p>
+        {bal.problem && <p className="ds-error" role="alert">{bal.problem}</p>}
         <button type="button" className="secondary-button" onClick={() => go("/requests?new=dailyLeave")}><PlusIcon /> درخواست جدید</button></section>
       {can(role, "approveRequests") && <section className="card approvals-card"><div className="card-heading"><div><span className="overline">ویژه مدیر</span><h2>در انتظار تصمیم شما</h2></div><span className="count-badge" aria-label={`${fa(queue.length)} درخواست`}>{fa(queue.length)}</span></div>
         {queue.length === 0 ? <p>همه درخواست‌ها بررسی شده‌اند.</p> : <ul className="queue-preview">{queue.slice(0, 3).map(r => <li key={r.id}><strong>{r.employee}</strong><small>{requestTypeLabels[r.type]} • {requestSummary(r)}</small></li>)}</ul>}
@@ -186,11 +189,12 @@ function ProfilePage({ role, go, onLogout }: { role: Role; go: (p: string) => vo
   const ledger = safeLedger(); const requests = requestStore.use();
   const month = monthPeriod(0); const t = totals(month.dates.map(d => recordFor(d, ledger, requests)));
   const mine = requests.filter(r => r.employeeCode === CURRENT_USER.code);
+  useLeaveRevision();
   const bal = leaveBalance(requests);
   const rows: Record<Tab, Array<[string, ReactNode]>> = {
     personal: [["نام و نام خانوادگی", "سارا احمدی"], ["شماره همراه", <bdi dir="ltr" key="p">0912 234 6789</bdi>], ["ایمیل", <bdi dir="ltr" key="e">sara@rocoguys.ir</bdi>], ["کد پرسنلی", <bdi dir="ltr" key="c">{CURRENT_USER.code}</bdi>]],
     employment: [["عنوان شغلی", "کارشناس محصول"], ["واحد", "محصول"], ["مدیر مستقیم", "نیما رضایی"], ["نوع قرارداد", "تمام‌وقت"], ["شیفت", `${shift.name} • ${fa(shift.start)} تا ${fa(shift.end)}`], ["محل کار", shift.place]],
-    attendance: [["کارکرد این ماه", `${hhmm(t.worked)} ساعت`], ["اضافه‌کار", `${hhmm(t.overtime)} ساعت`], ["تأخیر", `${hhmm(t.late)} ساعت`], ["مانده مرخصی", `${fa(bal.afterPending)} روز`]],
+    attendance: [["کارکرد این ماه", `${hhmm(t.worked)} ساعت`], ["اضافه‌کار", `${hhmm(t.overtime)} ساعت`], ["تأخیر", `${hhmm(t.late)} ساعت`], ["مانده مرخصی", bal.afterPending === undefined ? "ثبت نشده یا قابل خواندن نیست" : `${fa(bal.afterPending)} روز`]],
     requests: [],
     documents: [["قرارداد کار", "معتبر تا اسفند ۱۴۰۵"], ["مدرک هویتی", "معتبر"], ["بیمه تکمیلی", "در انتظار بارگذاری"]],
   };

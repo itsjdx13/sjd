@@ -35,6 +35,17 @@ test("production app has a valid install manifest and reopens routes offline",as
   await page.reload();
   await page.getByRole("button",{name:"پرونده کارکنان",exact:true}).click();
   await expect(page.locator(".employee-file")).toContainText("عنوان ذخیره‌شده آفلاین");
+  await page.getByRole("button",{name:"مرخصی و مانده",exact:true}).click();
+  await page.getByRole("button",{name:"اصلاح مانده سارا احمدی",exact:true}).click();
+  await page.getByLabel("مانده جدید پیش از رزرو درخواست‌ها").fill("18");
+  await page.getByLabel("دلیل اصلاح مانده").fill("اصلاح آزمایشی مانده در حالت آفلاین");
+  await page.getByRole("checkbox",{name:"مقدار، دلیل و اثر بر درخواست‌ها را بررسی کردم."}).check();
+  await page.getByRole("button",{name:"ثبت اصلاح مانده",exact:true}).click();
+  await expect(page.locator(".sr-live")).toContainText("اصلاح مانده سارا احمدی ذخیره شد");
+  await page.goto("/requests"); await page.reload();
+  await expect(page.locator(".summary-cards")).toContainText("۱۸ روز");
+  await expect(page.locator(".balance-card")).toContainText("۱۷");
+  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem("roco-leave-v1")!).corrections.length)).toBe(1);
   // A lazy-loaded screen also has its chunk precached.
   await page.goto("/design-system");
   await expect(page.getByRole("heading",{name:"راهنمای رابط روکو گایز",exact:true})).toBeVisible();
@@ -51,5 +62,5 @@ test("production app has a valid install manifest and reopens routes offline",as
   expect(exported.worksheets[0].rowCount).toBeGreaterThan(1);
   const cached=await page.evaluate(async()=>{const key=(await caches.keys()).find(k=>k.startsWith("roco-shell-"))!;return (await (await caches.open(key)).keys()).map(r=>new URL(r.url).pathname);});
   expect(cached.some(path=>path.includes("api")||path.includes("roco-session"))).toBe(false);
-  console.log("PWA: offline dashboard, requests, shared HR/profile save and reload, lazy reference and Excel import/export passed");
+  console.log("PWA: offline dashboard, requests, shared HR/profile and balance saves and reload, lazy reference and Excel import/export passed");
 });

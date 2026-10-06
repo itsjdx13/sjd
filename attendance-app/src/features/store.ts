@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 import { jalaliToISO } from "../design/locale";
 import type { Role } from "../design/policy";
 import { PersistenceFailure, readStrict, writeConfirmed } from "./persistence";
+import { balanceFor, ensureLeaveData, strictBalanceFor, saveLeaveCorrection } from "./leave";
 
 /* ---------- generic persisted store ---------- */
 type Listener = () => void;
@@ -97,7 +98,6 @@ export type RoRequest = {
   submissionKey?: string;
 };
 export const CURRENT_USER = { name: "سارا احمدی", code: "RG-1042" };
-export const LEAVE_BALANCE_DAYS = 12.5;
 export const MANAGER_NAME = "نیما رضایی";
 
 const entry = (at: string, actor: string, action: HistoryEntry["action"], comment?: string): HistoryEntry => ({ at, actor, action, comment });
@@ -129,6 +129,11 @@ export function submitRequest(draft: Omit<RoRequest, "id" | "status" | "createdA
   const list = requestStore.refreshPersisted(); const at = new Date().toISOString();
   const existing = submissionKey ? list.find(r => r.submissionKey === submissionKey && r.employeeCode === CURRENT_USER.code) : undefined;
   if (existing) return existing.id; // Retry after an uncertain read-back: one form, one request.
+  if (draft.type === "dailyLeave" && draft.leaveKind !== "unpaid") {
+    ensureLeaveData(list);
+    const balance = strictBalanceFor(list.filter(r => r.id !== replacingId), CURRENT_USER.code);
+    if (balance.afterPending === undefined || draft.days > balance.afterPending) throw new PersistenceFailure("conflict", "مانده مرخصی ثبت نشده یا کافی نیست؛ مانده تازه را بررسی کنید.");
+  }
   if (replacingId) {
     const current = list.find(r => r.id === replacingId);
     if (!current || current.status !== "returned" || current.employeeCode !== CURRENT_USER.code || expected && JSON.stringify(current) !== JSON.stringify(expected)) throw new PersistenceFailure("conflict", "این درخواست تغییر کرده یا دیگر قابل ویرایش نیست؛ وضعیت تازه را بررسی کنید.");
@@ -144,6 +149,11 @@ export function decideRequest(id: string, decision: Exclude<RequestStatus, "pend
   const list = requestStore.refreshPersisted(), current = list.find(r => r.id === id);
   if (!current || current.status !== "pending" || current.employeeCode === CURRENT_USER.code || expected && JSON.stringify(current) !== JSON.stringify(expected)) throw new PersistenceFailure("conflict", "درخواست تغییر کرده یا قبلاً بررسی شده است؛ وضعیت تازه را بررسی کنید. تصمیم جدید ثبت نشد.");
   if (decision !== "approved" && !comment.trim()) throw new PersistenceFailure("conflict", "برای رد یا بازگشت درخواست، دلیل لازم است.");
+  if (current.type === "dailyLeave" && current.leaveKind !== "unpaid") ensureLeaveData(list);
+  if (decision === "approved" && current.type === "dailyLeave" && current.leaveKind !== "unpaid") {
+    const balance = strictBalanceFor(list, current.employeeCode);
+    if (balance.afterPending === undefined || balance.afterPending < 0) throw new PersistenceFailure("conflict", "مانده ثبت نشده یا برای درخواست‌های رزروشده کافی نیست؛ اصلاح مانده یا بررسی درخواست‌ها لازم است.");
+  }
   requestStore.setPersisted(list.map(r => r.id === id && r.status === "pending"
     ? { ...r, status: decision, history: [...r.history, entry(at, actor, decision, comment.trim() || undefined)] } : r));
 }
@@ -168,10 +178,7 @@ export function findOverlaps(draft: Pick<RoRequest, "type" | "startDate" | "endD
   return list.filter(r => r.employeeCode === CURRENT_USER.code && r.id !== ignoreId && (r.status === "pending" || r.status === "approved")
     && leaveLike(r.type) === leaveLike(draft.type) && (r.type === draft.type || leaveLike(draft.type)) && overlaps(draft, r));
 }
-export function leaveBalance(list: RoRequest[]) {
-  const pendingDays = list.filter(r => r.employeeCode === CURRENT_USER.code && r.type === "dailyLeave" && r.leaveKind !== "unpaid" && r.status === "pending").reduce((n, r) => n + r.days, 0);
-  return { available: LEAVE_BALANCE_DAYS, pendingDays, afterPending: LEAVE_BALANCE_DAYS - pendingDays };
-}
+export function leaveBalance(list: RoRequest[], code = CURRENT_USER.code) { return balanceFor(list, code); }
 export const isoFromField = (value: string) => jalaliToISO(value);
 
 /* ---------- employees ---------- */
@@ -197,6 +204,10 @@ const seedEmployees = (): Employee[] => {
 const isEmployeeList = (v: unknown): v is Employee[] => Array.isArray(v) && v.every(e => e && typeof e.code === "string" && typeof e.name === "string" && typeof e.department === "string" && ["active", "leave", "inactive"].includes(e.status) && typeof e.shift === "string" && (e.email === undefined || typeof e.email === "string"));
 export const employeeStore = createStore<Employee[]>("roco-employees-v1", seedEmployees, isEmployeeList);
 export const departments = ["محصول", "عملیات", "مالی", "فروش", "منابع انسانی"];
+export function correctLeaveBalance(input: Parameters<typeof saveLeaveCorrection>[0]) {
+  if (!employeeStore.refreshPersisted().some(e => e.code === input.code)) throw new PersistenceFailure("conflict", "این کارمند دیگر در فهرست کارکنان نیست؛ اصلاح ثبت نشد.");
+  return saveLeaveCorrection(input, requestStore.refreshPersisted());
+}
 
 /* Strict administrative employee writes: reread the saved list, reject stale edits, confirm by read-back. */
 const sameEmployee = (a: Employee | undefined, b: Employee | undefined) => JSON.stringify(a) === JSON.stringify(b);
