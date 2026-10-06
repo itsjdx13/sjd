@@ -22,6 +22,7 @@ When implementing from a selected generated mock, treat that image as the source
 ## Editing Boundary
 
 - V2 organization decisions (October 1, 2026): Saturday and Sunday are regular days off; calendar weeks still start Saturday. Leave has manager-only final approval. System Admin may also approve requests and edit attendance. Keep these in shared organization policy, not per-screen constants. These are personal-demo rules until server-backed enforcement exists.
+- Sajad's balance decision (October 5, 2026): HR corrections must feed one shared employee leave balance used by HR, leave-request display/validation, dashboard and profile. Corrections need reasons/history and strict saving. Plan pending/approved leave accounting explicitly to avoid double deductions; do not leave an independent fixed request balance after integrating corrections.
 - The shared design foundation lives in src/design; retain the cream/indigo Estedad identity. /design-system is the interactive component reference. Do not claim the entire v2 acceptance gate passed while legacy controls, backend validation, and accessibility audits remain unfinished.
 
 - Build app-specific UI in `src/Prototype.tsx` and `src/prototype.css`.

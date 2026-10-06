@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 
 const HR = "roco-hr-v1", EMP = "roco-employees-v1";
 test.beforeEach(async ({ page }) => { await page.addInitScript(() => { if (!localStorage.getItem("roco-session-v1")) localStorage.setItem("roco-role", "hr"); }); });
@@ -136,4 +137,49 @@ test("overlong text is rejected with a linked error, and Escape closes the drawe
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(edit(page)).toBeFocused();
+});
+
+test("a silently ignored profile write keeps the draft until read-back confirms retry", async ({ page }) => {
+  await openFile(page);
+  const before = await saved(page);
+  await edit(page).click();
+  await page.getByLabel("عنوان شغلی").fill("پیش‌نویس تأییدنشده");
+  await page.evaluate(key => {
+    const original = Storage.prototype.setItem;
+    (window as unknown as { __orig?: typeof original }).__orig = original;
+    Storage.prototype.setItem = function (k, value) { if (k !== key) original.call(this, k, value); };
+  }, HR);
+  await page.getByRole("button", { name: "ذخیره پرونده" }).click();
+  await expect(page.getByRole("dialog").getByRole("alert")).toContainText("ذخیره تأیید نشد");
+  await expect(page.getByLabel("عنوان شغلی")).toHaveValue("پیش‌نویس تأییدنشده");
+  await expect(page.locator(".sr-live")).toHaveText("");
+  expect(await saved(page)).toBe(before);
+  await setBlocked(page, false);
+  await page.getByRole("button", { name: "تلاش دوباره برای ذخیره" }).click();
+  await expect(page.locator(".sr-live")).toContainText("ذخیره شد");
+  await page.reload();
+  expect((await profile(page)).role).toBe("پیش‌نویس تأییدنشده");
+});
+
+test("profile drawer fits phone, tablet and desktop, traps focus and has no serious axe violations", async ({ page }) => {
+  for (const width of [390, 768, 1366]) {
+    await page.setViewportSize({ width, height: 900 });
+    await openFile(page);
+    await edit(page).click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    const layout = await page.evaluate(() => ({ viewport: innerWidth, scrollWidth: document.documentElement.scrollWidth,
+      outside: Array.from(document.querySelectorAll("body *")).flatMap(node => { const r = node.getBoundingClientRect(); return r.width && (r.left < -1 || r.right > innerWidth + 1) ? [{ tag: node.tagName, className: node.getAttribute("class"), left: Math.round(r.left), right: Math.round(r.right) }] : []; }).slice(-15) }));
+    expect(layout.scrollWidth, JSON.stringify({ width, ...layout })).toBeLessThanOrEqual(layout.viewport);
+    await dialog.getByRole("button", { name: "ذخیره پرونده", exact: true }).focus();
+    await page.keyboard.press("Tab");
+    expect(await dialog.evaluate(node => node.contains(document.activeElement))).toBe(true);
+    await page.keyboard.press("Shift+Tab");
+    expect(await dialog.evaluate(node => node.contains(document.activeElement))).toBe(true);
+    const result = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"]).analyze();
+    expect(result.violations.filter(v => v.impact === "serious" || v.impact === "critical").map(v => v.id)).toEqual([]);
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    await expect(edit(page)).toBeFocused();
+  }
 });

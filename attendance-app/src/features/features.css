@@ -42,6 +42,10 @@
 /* sheets and drawers (bottom sheet on phones, centered dialog on tablets, side drawer for details) */
 .dialog-sheet { transform: translate(-50%, -50%) translateY(var(--sheet-drag, 0px)); transition: transform var(--motion-panel) var(--motion-easing); }
 .sheet-handle { touch-action: none; }
+/* Keep the HR tab rail inside the real viewport, including when a modal locks scrolling. */
+@media (max-width: 767px) {
+  .hr-tabs { margin-inline: 0; max-inline-size: 100%; }
+}
 .dialog-sheet > header .icon-button { flex: none; }
 @media (min-width: 768px) {
   .app-dialog.as-drawer .dialog-sheet { inset: 0 auto 0 0; top: 0; left: 0; transform: none; width: min(480px, 100%); max-height: none; height: 100%; border-radius: 0 var(--radius-sheet) var(--radius-sheet) 0; }
