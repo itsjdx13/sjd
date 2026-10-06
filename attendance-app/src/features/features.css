@@ -237,3 +237,7 @@
 .employee-picker-list .check-row { padding-block:var(--space-2); }
 .employee-picker-list bdi { margin-inline-start:var(--space-2); }
 .employee-picker-list small { display:block; color:var(--text-secondary); }
+.announcement-workspace { display:grid; gap:var(--space-4); min-inline-size:0; }
+.announcement-preview { min-inline-size:0; overflow-wrap:anywhere; }
+.announcement-preview h3 { margin-block:var(--space-4) var(--space-3); }
+.announcement-body { white-space:pre-wrap; overflow-wrap:anywhere; }

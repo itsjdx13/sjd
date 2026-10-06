@@ -6,6 +6,8 @@ Independent Persian RTL workforce application, shared for Claude collaboration. 
 
 Read this folder's `AGENTS.md` and the latest entries in `V2-PROGRESS.md` before editing. The parent repository's Next.js commands are for SJD, not this Vite project. Work from `attendance-app/`.
 
+`PRODUCT-ROADMAP.md` distinguishes the current Phase 1 frontend/early HR prototypes from a real server-backed release and lists the six major release milestones.
+
 ```sh
 npm ci
 npm run dev
@@ -29,9 +31,9 @@ Latest reported local results before this source upload: 73 main tests passed, 7
 
 ## Next work for Claude
 
-1. Apply strict persistence to administrative employee add/edit/bulk changes, with failure, retry, reload and stale-edit tests.
-2. Make HR, administration, requests and roster share employee records before completing HR placeholder operations.
-3. Implement honest local HR operations: balance corrections with reason/history, local policy settings, announcement preview clearly marked not sent, and per-employee offboarding checklists.
+1. Read the latest Codex handoff and base new work on the current verified branch. Strict admin edits, shared HR employees, profile edits and shared balance corrections are implemented.
+2. Finish remaining local HR placeholders one batch at a time: limited settings based on the agreed organization rules and per-employee offboarding checklists. Announcement drafts/preview must remain explicitly not sent.
+3. Agree the server-backed attendance release scope and architecture with Sajad before expanding into backend services or deployment.
 4. Investigate the seven legacy phone-runtime failures separately; do not weaken the protected-file checks.
 5. Leave real-device camera/GPS/install/swipe and Persian screen-reader acceptance marked unverified until performed.
 
